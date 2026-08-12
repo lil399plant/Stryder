@@ -19,23 +19,45 @@ export function AboutSection() {
           diagnostic tool. Patterns shown in Analytics are observations, not conclusions.
         </p>
         {syncStatus.configured ? (
-          <p>
-            This deployment has shared storage linked, so what either caregiver logs is saved to
-            one household record (not tied to an individual account) and shows up on both
-            devices. There&apos;s no login and no third-party analytics — the only place data
-            goes is that shared record.
-          </p>
+          <>
+            <p>
+              This deployment stores data in a shared Supabase table — one household record, not
+              tied to an individual account — so what either caregiver logs shows up on both
+              devices. There&apos;s no login: anyone with the deployment&apos;s URL can view or
+              edit this log, so treat the link the way you&apos;d treat a shared document.
+              There&apos;s no third-party analytics — the only place data goes is that Supabase
+              record.
+            </p>
+            <p>
+              Two limitations worth knowing. First, syncing isn&apos;t real-time — each device
+              pulls the latest data when a page loads and pushes changes back after each edit, so
+              if you&apos;re both using the app at the same moment, a screen that&apos;s already
+              open won&apos;t pick up the other person&apos;s change until it&apos;s refreshed.
+              Second, every save replaces the whole record rather than merging it field-by-field —
+              if you&apos;re both mid-edit before either of you has refreshed, whichever save
+              lands last wins, and can overwrite the other person&apos;s changes rather than
+              combining them. In practice, for logging one event at a time, this is unlikely to
+              bite — it mostly matters if you&apos;re both editing profile-style fields (like
+              Health or Settings) at the exact same time.
+            </p>
+            <p>
+              It&apos;s still worth keeping an occasional backup — use Export/Import in Data to
+              save or restore a copy of the log independent of Supabase.
+            </p>
+          </>
         ) : (
-          <p>
-            In this version, all data stays on this device in your browser&apos;s local storage.
-            There is no account, no server, and nothing is sent anywhere unless you explicitly
-            export a file yourself.
-          </p>
+          <>
+            <p>
+              In this version, all data stays on this device in your browser&apos;s local storage.
+              There is no account, no server, and nothing is sent anywhere unless you explicitly
+              export a file yourself.
+            </p>
+            <p>
+              If you clear your browser&apos;s site data, or switch devices, your log
+              won&apos;t come with you automatically — use Export/Import to move it.
+            </p>
+          </>
         )}
-        <p>
-          If you clear your browser&apos;s site data, or switch devices without shared storage
-          linked, your log won&apos;t come with you automatically — use Export/Import to move it.
-        </p>
       </CardContent>
     </Card>
   );
