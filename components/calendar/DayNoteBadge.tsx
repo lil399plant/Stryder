@@ -2,12 +2,14 @@
 
 import { StickyNote } from "lucide-react";
 import type { TimelineItem } from "@/lib/timeline";
+import { dayNoteTextFor } from "@/components/log/timelineVisual";
 import { cn } from "@/lib/utils";
 
-// A "new behavior observed" note attached to a day — deliberately not a
-// calendar dot/chip like every other entry kind (see isDayNoteItem in
-// components/log/timelineVisual.tsx). Clicking opens the first note for
-// editing, the same EntryEditSheet used everywhere else in the app.
+// A note attached to a day — "new behavior observed", "chewing", and
+// treat meals are deliberately kept off the calendar's dot/chip system
+// (see isDayNoteItem in components/log/timelineVisual.tsx) and shown here
+// instead. Clicking opens the first one for editing, the same
+// EntryEditSheet used everywhere else in the app.
 
 export function DayNoteBadge({
   items,
@@ -20,7 +22,7 @@ export function DayNoteBadge({
 }) {
   if (items.length === 0) return null;
   const first = items[0];
-  const text = first.kind === "incident" ? first.data.note.trim() : "";
+  const text = dayNoteTextFor(first);
 
   return (
     <button
@@ -36,7 +38,7 @@ export function DayNoteBadge({
     >
       <StickyNote className="mt-[1px] h-2.5 w-2.5 shrink-0" />
       <span className="truncate">
-        {text || "New behavior observed"}
+        {text}
         {items.length > 1 && ` +${items.length - 1}`}
       </span>
     </button>

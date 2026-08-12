@@ -42,8 +42,8 @@ export const KIND_STYLES: Record<TimelineItem["kind"], { bg: string; fg: string;
 /** Point-in-time entries that get a distinctive emoji instead of the
  * generic kind icon/color-dot, everywhere IconFor or a calendar dot
  * renders them (Today/Log timeline, Month chips, Week/Day markers). Only
- * the specific sub-types below are overridden — meal treat/enrichment
- * keep the default look. */
+ * the specific sub-types below are overridden — meal enrichment and other
+ * incident categories keep the default look. */
 export function emojiFor(item: TimelineItem): string | null {
   if (item.kind === "potty") {
     if (item.data.type === "pee") return "🍋";
@@ -57,6 +57,10 @@ export function emojiFor(item: TimelineItem): string | null {
     if (t === "breakfast" || t === "lunch" || t === "dinner") return "🍗";
     return null;
   }
+  if (item.kind === "incident") {
+    if (item.data.category === "overstimulation") return "🚗";
+    return null;
+  }
   return null;
 }
 
@@ -67,11 +71,22 @@ export function isEmojiCombo(emoji: string): boolean {
   return [...emoji].length > 1;
 }
 
-/** "New behavior observed" notes are deliberately kept off the calendar's
- * dot/chip system entirely — see DayNoteBadge — rather than shown as a
- * normal point marker. */
+/** "New behavior observed" and "chewing" notes, plus treat meals, are
+ * deliberately kept off the calendar's dot/chip system entirely — see
+ * DayNoteBadge — rather than shown as a normal point marker. */
 export function isDayNoteItem(item: TimelineItem): boolean {
-  return item.kind === "incident" && item.data.category === "new-behavior";
+  if (item.kind === "incident") return item.data.category === "new-behavior" || item.data.category === "chewing";
+  if (item.kind === "meal") return item.data.mealType === "treat";
+  return false;
+}
+
+/** Display text for a DayNoteBadge — the incident's note (or its category
+ * label, defensively, if note is somehow blank), or a meal's food/notes
+ * (falling back to "Treat"). */
+export function dayNoteTextFor(item: TimelineItem): string {
+  if (item.kind === "incident") return item.data.note.trim() || INCIDENT_CATEGORY_LABEL[item.data.category];
+  if (item.kind === "meal") return item.data.notes?.trim() || item.data.foodName?.trim() || "Treat";
+  return "";
 }
 
 // Maps the icon-box size classes actually used across call sites to a
