@@ -33,7 +33,7 @@ export function SideNav() {
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- small static local asset, next/image is overkill */}
-                <img src={icon} alt="" className="h-6 w-6 rounded-full object-cover" />
+                <img src={icon} alt="" className="h-6 w-6 rounded-full bg-forest-soft object-cover" />
                 {label}
               </Link>
             </li>
