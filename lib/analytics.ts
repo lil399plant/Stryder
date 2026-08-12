@@ -62,7 +62,7 @@ export interface NapLocationStat {
 export function napDurationByLocation(data: AppData): NapLocationStat[] {
   const byLoc = new Map<NapLocation, number[]>();
   for (const n of data.napEvents) {
-    if (!n.endTime) continue;
+    if (!n.endTime || !n.location) continue;
     const mins = minutesBetween(new Date(n.startTime), new Date(n.endTime));
     if (mins <= 0) continue;
     const arr = byLoc.get(n.location) ?? [];

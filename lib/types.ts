@@ -111,7 +111,9 @@ export interface NapEvent {
   kind: "nap";
   startTime: ISODateTime;
   endTime?: ISODateTime;
-  location: NapLocation;
+  /** Optional — leave unset rather than guessing when the spot isn't known
+   * or doesn't matter for that nap. */
+  location?: NapLocation;
   settling?: Settling;
   quality?: NapQuality;
   notes?: string;

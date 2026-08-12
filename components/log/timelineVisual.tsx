@@ -8,6 +8,7 @@ import {
   Target,
   AlertTriangle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { formatClock } from "@/lib/time";
 import type { TimelineItem } from "@/lib/timeline";
 import {
@@ -38,8 +39,60 @@ export const KIND_STYLES: Record<TimelineItem["kind"], { bg: string; fg: string;
   training: { bg: "bg-surface-raised", fg: "text-muted-foreground", dot: "bg-muted-foreground" },
 };
 
+/** Point-in-time entries that get a distinctive emoji instead of the
+ * generic kind icon/color-dot, everywhere IconFor or a calendar dot
+ * renders them (Today/Log timeline, Month chips, Week/Day markers). Only
+ * the specific sub-types below are overridden — potty "both" and meal
+ * treat/enrichment keep the default look. */
+export function emojiFor(item: TimelineItem): string | null {
+  if (item.kind === "potty") {
+    if (item.data.type === "pee") return "🍋";
+    if (item.data.type === "poop") return "💩";
+    if (item.data.type === "accident") return "❌";
+    return null;
+  }
+  if (item.kind === "meal") {
+    const t = item.data.mealType;
+    if (t === "breakfast" || t === "lunch" || t === "dinner") return "🍗";
+    return null;
+  }
+  return null;
+}
+
+/** "New behavior observed" notes are deliberately kept off the calendar's
+ * dot/chip system entirely — see DayNoteBadge — rather than shown as a
+ * normal point marker. */
+export function isDayNoteItem(item: TimelineItem): boolean {
+  return item.kind === "incident" && item.data.category === "new-behavior";
+}
+
+// Maps the icon-box size classes actually used across call sites to a
+// roughly matching emoji font size. Checked in order so "h-3.5" is caught
+// before the shorter "h-3" (which is otherwise a substring of it).
+const EMOJI_SIZE_BY_ICON_CLASS: [needle: string, textClass: string][] = [
+  ["h-2.5", "text-[11px]"],
+  ["h-3.5", "text-[14px]"],
+  ["h-4.5", "text-[18px]"],
+  ["h-3", "text-[13px]"],
+];
+
+function emojiSizeClass(className: string): string {
+  for (const [needle, cls] of EMOJI_SIZE_BY_ICON_CLASS) {
+    if (className.includes(needle)) return cls;
+  }
+  return "text-[15px]";
+}
+
 export function IconFor({ item, className }: { item: TimelineItem; className?: string }) {
   const cls = className ?? "h-4.5 w-4.5";
+  const emoji = emojiFor(item);
+  if (emoji) {
+    return (
+      <span className={cn("inline-flex shrink-0 items-center justify-center leading-none", cls, emojiSizeClass(cls))}>
+        {emoji}
+      </span>
+    );
+  }
   switch (item.kind) {
     case "potty":
       return <Droplets className={cls} />;
@@ -93,9 +146,11 @@ export function subtitleFor(item: TimelineItem): string {
     case "meal":
       return `${item.data.foodName || "—"} · ${APPETITE_LABEL[item.data.appetite]}`;
     case "nap": {
-      const loc = NAP_LOCATION_LABEL[item.data.location];
-      if (!item.data.endTime) return `${loc} · started ${formatClock(item.data.startTime)}`;
-      return `${loc} · ${formatClock(item.data.startTime)}–${formatClock(item.data.endTime)}`;
+      const loc = item.data.location ? NAP_LOCATION_LABEL[item.data.location] : null;
+      const range = !item.data.endTime
+        ? `started ${formatClock(item.data.startTime)}`
+        : `${formatClock(item.data.startTime)}–${formatClock(item.data.endTime)}`;
+      return loc ? `${loc} · ${range}` : range;
     }
     case "downstairs": {
       if (!item.data.endTime) return `Started ${formatClock(item.data.startTime)}`;

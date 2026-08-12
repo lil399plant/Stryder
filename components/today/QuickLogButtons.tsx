@@ -64,7 +64,7 @@ export function QuickLogButtons({
     <div className="mb-4">
       {activeNap && (
         <ActiveCard
-          label={`Napping in ${activeNap.location.replace(/-/g, " ")}`}
+          label={activeNap.location ? `Napping in ${activeNap.location.replace(/-/g, " ")}` : "Napping"}
           detail={`Started ${formatDurationSince(activeNap.startTime, now)}`}
           onEnd={onNapEnd}
         />

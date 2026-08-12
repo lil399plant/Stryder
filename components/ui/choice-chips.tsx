@@ -10,18 +10,22 @@ export interface ChipOption {
 interface SingleChoiceProps {
   options: ChipOption[];
   value: string | undefined;
-  onChange: (value: string) => void;
+  onChange: (value: string | undefined) => void;
   className?: string;
+  /** Tapping the already-selected chip clears the selection instead of
+   * being a no-op. Only for genuinely optional fields (e.g. nap location)
+   * — leave off for fields that must always have a value. */
+  allowDeselect?: boolean;
 }
 
-function ChoiceChips({ options, value, onChange, className }: SingleChoiceProps) {
+function ChoiceChips({ options, value, onChange, className, allowDeselect = false }: SingleChoiceProps) {
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>
       {options.map((opt) => (
         <button
           type="button"
           key={opt.value}
-          onClick={() => onChange(opt.value)}
+          onClick={() => onChange(allowDeselect && value === opt.value ? undefined : opt.value)}
           className={cn(
             "min-h-10 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition-colors active:scale-[0.98]",
             value === opt.value

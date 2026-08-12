@@ -128,9 +128,9 @@ function sanitizeNap(raw: any): NewEntry<NapEvent> | null {
 
   const entry: NewEntry<NapEvent> = {
     startTime: raw.startTime,
-    location: NAP_LOCATIONS.has(raw.location) ? raw.location : "crate",
     caregiver: raw.caregiver,
   };
+  if (NAP_LOCATIONS.has(raw.location)) entry.location = raw.location;
   if (isValidIso(raw.endTime)) entry.endTime = raw.endTime;
   if (SETTLINGS.has(raw.settling)) entry.settling = raw.settling;
   if (NAP_QUALITIES.has(raw.quality)) entry.quality = raw.quality;

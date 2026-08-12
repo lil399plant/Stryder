@@ -57,7 +57,7 @@ pottyEvents: { timestamp, type: ${valuesList(POTTY_TYPE_OPTIONS)}, location: ${v
 
 mealEvents: { timestamp, mealType: ${valuesList(MEAL_TYPE_OPTIONS)}, foodName: string, amount: string, appetite: ${valuesList(APPETITE_OPTIONS)}, addOns?: array from [${valuesList(ADD_ON_OPTIONS)}], newFood: boolean, usedForCrateTraining: boolean, usedAsPottyReward: boolean, notes?: string, caregiver }
 
-napEvents: { startTime, endTime?, location: ${valuesList(NAP_LOCATION_OPTIONS)}, settling?: ${valuesList(SETTLING_OPTIONS)}, quality?: ${valuesList(NAP_QUALITY_OPTIONS)}, notes?: string, caregiver }
+napEvents: { startTime, endTime?, location?: ${valuesList(NAP_LOCATION_OPTIONS)} (omit if not stated — don't guess), settling?: ${valuesList(SETTLING_OPTIONS)}, quality?: ${valuesList(NAP_QUALITY_OPTIONS)}, notes?: string, caregiver }
 
 downstairsTrips: { startTime, endTime?, outdoorTripType?: ${valuesList(OUTDOOR_TRIP_OPTIONS)}, notes?: string, caregiver }
 
@@ -68,7 +68,7 @@ incidentEvents: { timestamp, category: ${valuesList(INCIDENT_CATEGORY_OPTIONS)},
 Rules:
 - caregiver must be exactly one of the ids listed above.
 - All timestamps/startTime/endTime must be valid ISO 8601 UTC strings.
-- If a required field isn't stated in the text, use a reasonable default rather than omitting the record (e.g. location "usual-spot", success "went-promptly", appetite "most", nap location "crate", event category "other", incident severity "note").
+- If a required field isn't stated in the text, use a reasonable default rather than omitting the record (e.g. location "usual-spot", success "went-promptly", appetite "most", event category "other", incident severity "note"). Nap location is optional — leave it out rather than guessing.
 - Output raw JSON only.`;
 }
 

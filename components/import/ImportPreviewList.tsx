@@ -55,7 +55,7 @@ export function ImportPreviewList({
             key={`n${i}`}
             time={formatClock(e.startTime)}
             caregiver={caregiverName(e.caregiver)}
-            summary={`Nap · ${NAP_LOCATION_LABEL[e.location]}`}
+            summary={e.location ? `Nap · ${NAP_LOCATION_LABEL[e.location]}` : "Nap"}
           />
         ))}
       </EntryGroup>

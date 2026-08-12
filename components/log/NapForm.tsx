@@ -66,12 +66,14 @@ export function NapForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Location</Label>
+        <Label>Location (optional)</Label>
         <ChoiceChips
           options={NAP_LOCATION_OPTIONS}
           value={values.location}
           onChange={(v) => set("location", v as NapFormValues["location"])}
+          allowDeselect
         />
+        <p className="text-[11.5px] text-muted-foreground">Tap the selected spot again to clear it.</p>
       </div>
 
       <div className="flex flex-col gap-1.5">

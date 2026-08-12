@@ -137,7 +137,7 @@ export const ADD_ON_LABEL: Record<string, string> = {
   other: "Other",
 };
 
-export const NAP_LOCATION_LABEL: Record<NapEvent["location"], string> = {
+export const NAP_LOCATION_LABEL: Record<NonNullable<NapEvent["location"]>, string> = {
   kitchen: "Kitchen",
   "foot-of-bed": "Foot of bed",
   couch: "Couch",
