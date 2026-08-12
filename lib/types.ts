@@ -112,7 +112,7 @@ export interface NapEvent {
   startTime: ISODateTime;
   endTime?: ISODateTime;
   location: NapLocation;
-  settling: Settling;
+  settling?: Settling;
   quality?: NapQuality;
   notes?: string;
   caregiver: Caregiver;

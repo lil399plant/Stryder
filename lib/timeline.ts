@@ -146,7 +146,7 @@ export const NAP_LOCATION_LABEL: Record<NapEvent["location"], string> = {
   other: "Other",
 };
 
-export const SETTLING_LABEL: Record<NapEvent["settling"], string> = {
+export const SETTLING_LABEL: Record<NonNullable<NapEvent["settling"]>, string> = {
   "fell-asleep-independently": "Fell asleep independently",
   "needed-chew-lick-mat": "Needed chew / lick mat",
   "needed-caregiver-nearby": "Needed caregiver nearby",
