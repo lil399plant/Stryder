@@ -9,7 +9,7 @@ Stryder is not a pet-wellness gamification app. It exists to answer two question
 
 ...and to make handing off "who's on Stryder" between two people effortless, without turning normal puppy variation into anxiety.
 
-This is a **local-first MVP** — no accounts, no analytics pipeline. There's still no login and no per-user data: every screen reads/writes one shared household record. That record lives in your browser's `localStorage` by default, and optionally mirrors to **Redis** (see [Shared storage](#shared-storage-redis) below) so it's the same log on both caregivers' devices, not just one browser.
+This is a **local-first MVP** — no accounts, no analytics pipeline. There's still no login and no per-user data: every screen reads/writes one shared household record. That record lives in your browser's `localStorage` by default, and optionally mirrors to **Supabase** (see [Shared storage](#shared-storage-supabase) below) so it's the same log on both caregivers' devices, not just one browser.
 
 ---
 
@@ -47,20 +47,25 @@ Go to **More → Data export & import → Erase all data** to wipe everything ba
 
 ---
 
-## Shared storage (Redis)
+## Shared storage (Supabase)
 
-Without this section, Stryder still works fully — it just keeps each device's log to itself. Linking Redis makes it one shared log between caregivers.
+Without this section, Stryder still works fully — it just keeps each device's log to itself. Linking Supabase makes it one shared log between caregivers.
 
-**Recommended — via Vercel:** Project → **Storage** tab → **Create Database** → **Redis** (this is Upstash under the hood). Vercel injects `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` into the project automatically; redeploy (or it redeploys itself) and it's live — no copying secrets anywhere.
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Open its **SQL Editor** and run:
+   ```sql
+   create table if not exists app_data (
+     id text primary key,
+     data jsonb not null,
+     updated_at timestamptz not null default now()
+   );
+   ```
+3. Go to **Project Settings → API** and copy the **Project URL** and the **`service_role`** secret key (not the `anon`/public key — the service-role key is server-only and this app only ever uses it inside a server-side API route, never in the browser).
+4. Add them as environment variables named `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — in Vercel: **Project → Settings → Environment Variables**; for local dev: copy `.env.example` to `.env.local` and fill them in. Redeploy (or restart `npm run dev`) after adding them.
 
-**Manual / local dev:** create a free database at [console.upstash.com](https://console.upstash.com), open its **REST API** tab, and copy those same two values into a `.env.local` file in this folder (see `.env.example`):
+**More → Data** shows a live "Shared storage connected" / "Local only" badge so you can confirm it's wired up. There's no auth in this version, so it's one row for the whole household (id `stryder` in the `app_data` table) — not per-user.
 
-```bash
-cp .env.example .env.local
-# then fill in UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
-```
-
-**More → Data** shows a live "Shared storage connected" / "Local only" badge so you can confirm it's wired up. There's no auth in this version, so it's one record for the whole household (key `stryder:data`) — not per-user.
+**Order matters the first time:** once Supabase is linked, open the app on whichever device already has your real data — it pushes that up as the shared record (since Supabase starts empty). Only after that should the other caregiver open the app on their device, so they pull the real data down instead of overwriting it with whatever was on their device.
 
 ---
 
@@ -70,7 +75,7 @@ The repo is set up for Vercel:
 
 1. Push this repo to GitHub (already done if you're reading this from the repo).
 2. In Vercel: **Add New → Project**, import the GitHub repo, keep the auto-detected Next.js settings, deploy.
-3. Optionally attach Redis as described above — the app works either way.
+3. Optionally attach Supabase as described above — the app works either way.
 
 ---
 
@@ -101,9 +106,9 @@ A sixth screen, **Patterns** (`/analytics`, linked from More and from Today), sh
 - **Tailwind CSS v4** (CSS-first `@theme` tokens in `app/globals.css` — no `tailwind.config.ts`)
 - **Hand-rolled shadcn/ui-style primitives** in `components/ui/` (Button, Card, Sheet, Tabs, Switch, etc.) built with `class-variance-authority` + `tailwind-merge`, rather than pulling in Radix — kept the dependency surface small for an app this size
 - **Lucide React** for icons
-- **`localStorage` + optional Upstash Redis** for persistence (see [Shared storage](#shared-storage-redis)) — every device keeps a fast local copy, and if Redis is linked, one shared record syncs through it via a single API route. Everything is behind `lib/store.tsx`, so no screen talks to storage directly.
+- **`localStorage` + optional Supabase** for persistence (see [Shared storage](#shared-storage-supabase)) — every device keeps a fast local copy, and if Supabase is linked, one shared record syncs through it via a single API route. Everything is behind `lib/store.tsx`, so no screen talks to storage directly.
 
-No accounts, no third-party analytics. `next build` is a standard Next.js server build (the one dynamic piece is `app/api/data/route.ts`, used only when Redis is configured).
+No accounts, no third-party analytics. `next build` is a standard Next.js server build (the one dynamic piece is `app/api/data/route.ts`, used only when Supabase is configured).
 
 ---
 
@@ -155,13 +160,13 @@ Design notes:
 ```
 app/
   today/ log/ training/ training/cues/ health/ more/ analytics/   # routes
-  api/data/route.ts   # GET/PUT the shared Redis record (no-ops if unconfigured)
+  api/data/route.ts   # GET/PUT the shared Supabase record (no-ops if unconfigured)
   layout.tsx        # shell: ToastProvider + AppShell (nav, theme)
   manifest.ts        # PWA manifest (installable-looking)
 lib/
   types.ts           # all data types
-  store.tsx           # external store + localStorage/Redis sync + typed actions
-  redis.ts             # Upstash client, only ever imported server-side
+  store.tsx           # external store + localStorage/Supabase sync + typed actions
+  supabase.ts           # Supabase client, only ever imported server-side
   seed.ts             # blank-starter-state builder (no fabricated logs)
   rules.ts            # "next likely needs" rules engine
   analytics.ts         # Patterns page computations
@@ -190,4 +195,4 @@ components/
 
 - Not a medical or diagnostic tool, and it never claims to be. Health-area copy and the About/privacy note in More say this explicitly.
 - Not connected to a vet, insurer, or any external service — vaccine records you add can be flagged as placeholders until they're vet-confirmed.
-- Not multi-user. If Redis is linked, both caregivers see the *same* household record (no per-person accounts or permissions); without Redis, data stays on the device/browser it was entered on — use Export/Import (More → Data) to move it manually.
+- Not multi-user. If Supabase is linked, both caregivers see the *same* household record (no per-person accounts or permissions); without it, data stays on the device/browser it was entered on — use Export/Import (More → Data) to move it manually.

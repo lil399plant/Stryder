@@ -1,29 +1,34 @@
 import { NextResponse } from "next/server";
-import { getRedis, REDIS_DATA_KEY } from "@/lib/redis";
+import { getSupabase, SUPABASE_TABLE, SUPABASE_ROW_ID } from "@/lib/supabase";
 import type { AppData } from "@/lib/types";
 
-// Single shared-household record — see lib/redis.ts. Every write replaces
-// the whole blob (same shape the client keeps in localStorage), which
-// keeps this endpoint trivial: GET returns whatever's stored, PUT
-// overwrites it.
+// Single shared-household record — see lib/supabase.ts. Every write
+// replaces the whole blob (same shape the client keeps in localStorage),
+// which keeps this endpoint trivial: GET returns whatever's stored, PUT
+// upserts it.
 
 export async function GET() {
-  const redis = getRedis();
-  if (!redis) {
+  const supabase = getSupabase();
+  if (!supabase) {
     return NextResponse.json({ configured: false, data: null });
   }
   try {
-    const data = await redis.get<AppData>(REDIS_DATA_KEY);
-    return NextResponse.json({ configured: true, data: data ?? null });
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLE)
+      .select("data")
+      .eq("id", SUPABASE_ROW_ID)
+      .maybeSingle();
+    if (error) throw error;
+    return NextResponse.json({ configured: true, data: (data?.data as AppData) ?? null });
   } catch (err) {
-    console.error("Redis GET failed", err);
+    console.error("Supabase read failed", err);
     return NextResponse.json({ configured: true, data: null, error: "read-failed" }, { status: 502 });
   }
 }
 
 export async function PUT(request: Request) {
-  const redis = getRedis();
-  if (!redis) {
+  const supabase = getSupabase();
+  if (!supabase) {
     return NextResponse.json({ configured: false, saved: false });
   }
   let body: AppData;
@@ -36,10 +41,13 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "invalid-payload" }, { status: 400 });
   }
   try {
-    await redis.set(REDIS_DATA_KEY, body);
+    const { error } = await supabase
+      .from(SUPABASE_TABLE)
+      .upsert({ id: SUPABASE_ROW_ID, data: body, updated_at: new Date().toISOString() });
+    if (error) throw error;
     return NextResponse.json({ configured: true, saved: true });
   } catch (err) {
-    console.error("Redis PUT failed", err);
+    console.error("Supabase write failed", err);
     return NextResponse.json({ configured: true, saved: false, error: "write-failed" }, { status: 502 });
   }
 }

@@ -102,10 +102,11 @@ function ensureInitialized() {
 
 /**
  * Data lives in localStorage first (instant, offline-safe), and — once
- * Redis is linked via UPSTASH_REDIS_REST_URL/TOKEN — is also mirrored to a
- * shared record on the server via /api/data, so both caregivers' devices
- * see the same log. If Redis isn't configured the API just reports
- * `configured: false` and every call here is a harmless no-op.
+ * Supabase is linked via SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY — is also
+ * mirrored to a shared record on the server via /api/data, so both
+ * caregivers' devices see the same log. If Supabase isn't configured the
+ * API just reports `configured: false` and every call here is a harmless
+ * no-op.
  */
 async function pullFromServer() {
   try {
@@ -120,7 +121,7 @@ async function pullFromServer() {
       saveToStorage(currentData);
       notify();
     } else if (currentData) {
-      // Redis is linked but empty (first run) — seed it from what we have.
+      // Supabase is linked but empty (first run) — seed it from what we have.
       pushToServer(currentData);
     }
   } catch {

@@ -60,7 +60,7 @@ export function DataSection() {
             <div>
               <Badge variant="forest">Shared storage connected</Badge>
               <p className="mt-1.5 text-[12.5px] leading-snug text-forest-soft-foreground">
-                Logging syncs through Redis, so Me and Ribo see the same data on any device.
+                Logging syncs through Supabase, so Me and Ribo see the same data on any device.
                 {syncStatus.lastError && " The last sync attempt failed — this device will retry."}
               </p>
             </div>
@@ -72,7 +72,7 @@ export function DataSection() {
               <Badge variant="neutral">Local only</Badge>
               <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
                 No shared storage linked yet — this device&apos;s data stays in its own browser.
-                Connect Redis (see README) so both caregivers see the same log.
+                Connect Supabase (see README) so both caregivers see the same log.
               </p>
             </div>
           </div>
