@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* Manual dark mode: toggled via a `.dark` class on <html> (see
+   components/theme/ThemeController.tsx), not just prefers-color-scheme,
+   so the in-app Light/Dark/System setting actually works. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #faf6ee;
+  --surface: #fffdf9;
+  --surface-raised: #ffffff;
+  --foreground: #2e2a22;
+  --muted-foreground: #726c5c;
+  --border: #e8e0d0;
+  --border-strong: #d9cdb4;
+
+  --forest: #46664f;
+  --forest-foreground: #f7faf5;
+  --forest-soft: #e2ebe1;
+  --forest-soft-foreground: #35513d;
+
+  --blue: #5f7f9e;
+  --blue-foreground: #f6f9fb;
+  --blue-soft: #e2eaf1;
+  --blue-soft-foreground: #3f5b74;
+
+  --tan: #b8905e;
+  --tan-foreground: #2e2a22;
+  --tan-soft: #f1e6d3;
+  --tan-soft-foreground: #6b5230;
+
+  --concern: #a34a3f;
+  --concern-foreground: #fbf2f0;
+  --concern-soft: #f3e1de;
+  --concern-soft-foreground: #7c352c;
+
+  --radius: 1rem;
+}
+
+.dark {
+  --background: #1b1912;
+  --surface: #242019;
+  --surface-raised: #2b2620;
+  --foreground: #f1ebdd;
+  --muted-foreground: #b3aa94;
+  --border: #3a3427;
+  --border-strong: #4a4433;
+
+  --forest: #8bb494;
+  --forest-foreground: #16241a;
+  --forest-soft: #24352a;
+  --forest-soft-foreground: #b7d6bd;
+
+  --blue: #9ab8d3;
+  --blue-foreground: #16232f;
+  --blue-soft: #22303e;
+  --blue-soft-foreground: #b9d1e6;
+
+  --tan: #dbb885;
+  --tan-foreground: #241d10;
+  --tan-soft: #362c1c;
+  --tan-soft-foreground: #e2c69a;
+
+  --concern: #d98d80;
+  --concern-foreground: #271410;
+  --concern-soft: #3a221d;
+  --concern-soft-foreground: #edb2a7;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-forest: var(--forest);
+  --color-forest-foreground: var(--forest-foreground);
+  --color-forest-soft: var(--forest-soft);
+  --color-forest-soft-foreground: var(--forest-soft-foreground);
+
+  --color-blue: var(--blue);
+  --color-blue-foreground: var(--blue-foreground);
+  --color-blue-soft: var(--blue-soft);
+  --color-blue-soft-foreground: var(--blue-soft-foreground);
+
+  --color-tan: var(--tan);
+  --color-tan-foreground: var(--tan-foreground);
+  --color-tan-soft: var(--tan-soft);
+  --color-tan-soft-foreground: var(--tan-soft-foreground);
+
+  --color-concern: var(--concern);
+  --color-concern-foreground: var(--concern-foreground);
+  --color-concern-soft: var(--concern-soft);
+  --color-concern-soft-foreground: var(--concern-soft-foreground);
+
+  --radius-card: var(--radius);
+  --font-sans: var(--font-sans);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* iPhone safe areas */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+::selection {
+  background: var(--color-forest-soft);
+  color: var(--color-forest-soft-foreground);
+}
+
+/* Larger, calmer default tap targets */
+button,
+a {
+  -webkit-touch-callout: none;
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 16.5px;
+  }
+}

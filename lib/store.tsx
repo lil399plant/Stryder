@@ -1,0 +1,409 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
+import type {
+  AppData,
+  AppSettings,
+  Caregiver,
+  CueEntry,
+  HandoffState,
+  HealthProfile,
+  IncidentEvent,
+  InsuranceInfo,
+  MealEvent,
+  NapEvent,
+  OutingEvent,
+  PottyEvent,
+  PuppyProfile,
+  TrainingPlan,
+  TrainingSession,
+  VaccineRecord,
+} from "./types";
+import { buildSeedData } from "./seed";
+import { makeId } from "./id";
+
+// A small external-store singleton (see useSyncExternalStore below) rather
+// than React Context + useState. Reading from localStorage must happen
+// client-side only, so a naive useState+useEffect risks either a hydration
+// mismatch or a "setState in an effect" anti-pattern; useSyncExternalStore
+// is the pattern React recommends for exactly this — a synchronous,
+// browser-only external system — and it produces the exact same "nothing
+// until mounted, then real data" behavior without extra code.
+
+const STORAGE_KEY = "stryder-data-v1";
+const API_ENDPOINT = "/api/data";
+
+let currentData: AppData | null = null;
+let initialized = false;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+const listeners = new Set<() => void>();
+
+// ---- Shared-storage connection status (for the "Data" section in More) ----
+
+export type SyncStatus = { checked: boolean; configured: boolean; lastError: boolean };
+let syncStatus: SyncStatus = { checked: false, configured: false, lastError: false };
+const syncListeners = new Set<() => void>();
+
+function setSyncStatus(next: Partial<SyncStatus>) {
+  syncStatus = { ...syncStatus, ...next };
+  syncListeners.forEach((l) => l());
+}
+function subscribeSyncStatus(cb: () => void) {
+  syncListeners.add(cb);
+  return () => syncListeners.delete(cb);
+}
+function getSyncStatusSnapshot() {
+  return syncStatus;
+}
+function getSyncStatusServerSnapshot(): SyncStatus {
+  return { checked: false, configured: false, lastError: false };
+}
+export function useSyncStatus(): SyncStatus {
+  return useSyncExternalStore(subscribeSyncStatus, getSyncStatusSnapshot, getSyncStatusServerSnapshot);
+}
+
+/** Fills in fields added after a user's data was first saved, so older
+ * localStorage payloads (or imports) don't crash on a missing array. */
+function normalize(data: AppData): AppData {
+  return { ...data, outings: data.outings ?? [] };
+}
+
+function loadFromStorage(): AppData | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return normalize(JSON.parse(raw) as AppData);
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(data: AppData) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage full or unavailable — fail silently, data stays in memory.
+  }
+}
+
+function ensureInitialized() {
+  if (initialized || typeof window === "undefined") return;
+  initialized = true;
+  const existing = loadFromStorage();
+  if (existing) {
+    currentData = existing;
+  } else {
+    currentData = buildSeedData();
+    saveToStorage(currentData);
+  }
+  pullFromServer();
+}
+
+/**
+ * Data lives in localStorage first (instant, offline-safe), and — once
+ * Redis is linked via UPSTASH_REDIS_REST_URL/TOKEN — is also mirrored to a
+ * shared record on the server via /api/data, so both caregivers' devices
+ * see the same log. If Redis isn't configured the API just reports
+ * `configured: false` and every call here is a harmless no-op.
+ */
+async function pullFromServer() {
+  try {
+    const res = await fetch(API_ENDPOINT, { cache: "no-store" });
+    if (!res.ok) throw new Error(String(res.status));
+    const body = (await res.json()) as { configured: boolean; data: AppData | null };
+    setSyncStatus({ checked: true, configured: body.configured, lastError: false });
+    if (!body.configured) return;
+    if (body.data) {
+      // Server is the shared source of truth once it has something saved.
+      currentData = normalize(body.data);
+      saveToStorage(currentData);
+      notify();
+    } else if (currentData) {
+      // Redis is linked but empty (first run) — seed it from what we have.
+      pushToServer(currentData);
+    }
+  } catch {
+    // Offline, or no /api/data (older deploy) — stay local-only.
+    setSyncStatus({ checked: true, configured: false, lastError: true });
+  }
+}
+
+function pushToServer(data: AppData) {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    fetch(API_ENDPOINT, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((body: { configured: boolean; saved?: boolean }) => {
+        setSyncStatus({ checked: true, configured: body.configured, lastError: body.configured && !body.saved });
+      })
+      .catch(() => {
+        // Best-effort — localStorage already has it, we'll retry on next mutation.
+        setSyncStatus({ lastError: syncStatus.configured });
+      });
+  }, 400);
+}
+
+function notify() {
+  listeners.forEach((l) => l());
+}
+
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
+function getSnapshot(): AppData | null {
+  ensureInitialized();
+  return currentData;
+}
+
+function getServerSnapshot(): AppData | null {
+  return null;
+}
+
+function set(next: AppData) {
+  currentData = next;
+  saveToStorage(next);
+  pushToServer(next);
+  notify();
+}
+
+function mutate(updater: (draft: AppData) => AppData) {
+  if (!currentData) return;
+  set(updater(currentData));
+}
+
+// ---- Typed actions (plain functions — always read the latest module state) ----
+
+function addPotty(e: Omit<PottyEvent, "id" | "kind">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, pottyEvents: [...d.pottyEvents, { ...e, id, kind: "potty" }] }));
+  return id;
+}
+function updatePotty(id: string, patch: Partial<PottyEvent>) {
+  mutate((d) => ({ ...d, pottyEvents: d.pottyEvents.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+}
+function deletePotty(id: string) {
+  mutate((d) => ({ ...d, pottyEvents: d.pottyEvents.filter((p) => p.id !== id) }));
+}
+
+function addMeal(e: Omit<MealEvent, "id" | "kind">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, mealEvents: [...d.mealEvents, { ...e, id, kind: "meal" }] }));
+  return id;
+}
+function updateMeal(id: string, patch: Partial<MealEvent>) {
+  mutate((d) => ({ ...d, mealEvents: d.mealEvents.map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
+}
+function deleteMeal(id: string) {
+  mutate((d) => ({ ...d, mealEvents: d.mealEvents.filter((m) => m.id !== id) }));
+}
+
+function startNap(e: Omit<NapEvent, "id" | "kind" | "endTime">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, napEvents: [...d.napEvents, { ...e, id, kind: "nap" }] }));
+  return id;
+}
+function addNap(e: Omit<NapEvent, "id" | "kind">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, napEvents: [...d.napEvents, { ...e, id, kind: "nap" }] }));
+  return id;
+}
+function endNap(id: string, endTime?: string) {
+  mutate((d) => ({
+    ...d,
+    napEvents: d.napEvents.map((n) => (n.id === id ? { ...n, endTime: endTime ?? new Date().toISOString() } : n)),
+  }));
+}
+function updateNap(id: string, patch: Partial<NapEvent>) {
+  mutate((d) => ({ ...d, napEvents: d.napEvents.map((n) => (n.id === id ? { ...n, ...patch } : n)) }));
+}
+function deleteNap(id: string) {
+  mutate((d) => ({ ...d, napEvents: d.napEvents.filter((n) => n.id !== id) }));
+}
+
+function startOuting(e: Omit<OutingEvent, "id" | "kind" | "endTime">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, outings: [...d.outings, { ...e, id, kind: "outing" }] }));
+  return id;
+}
+function addOuting(e: Omit<OutingEvent, "id" | "kind">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, outings: [...d.outings, { ...e, id, kind: "outing" }] }));
+  return id;
+}
+function endOuting(id: string, endTime?: string) {
+  mutate((d) => ({
+    ...d,
+    outings: d.outings.map((o) => (o.id === id ? { ...o, endTime: endTime ?? new Date().toISOString() } : o)),
+  }));
+}
+function updateOuting(id: string, patch: Partial<OutingEvent>) {
+  mutate((d) => ({ ...d, outings: d.outings.map((o) => (o.id === id ? { ...o, ...patch } : o)) }));
+}
+function deleteOuting(id: string) {
+  mutate((d) => ({ ...d, outings: d.outings.filter((o) => o.id !== id) }));
+}
+
+function addIncident(e: Omit<IncidentEvent, "id" | "kind">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, incidentEvents: [...d.incidentEvents, { ...e, id, kind: "incident" }] }));
+  return id;
+}
+function updateIncident(id: string, patch: Partial<IncidentEvent>) {
+  mutate((d) => ({
+    ...d,
+    incidentEvents: d.incidentEvents.map((i) => (i.id === id ? { ...i, ...patch } : i)),
+  }));
+}
+function deleteIncident(id: string) {
+  mutate((d) => ({ ...d, incidentEvents: d.incidentEvents.filter((i) => i.id !== id) }));
+}
+
+function addTrainingSession(e: Omit<TrainingSession, "id">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, trainingSessions: [...d.trainingSessions, { ...e, id }] }));
+  return id;
+}
+function updateTrainingSession(id: string, patch: Partial<TrainingSession>) {
+  mutate((d) => ({
+    ...d,
+    trainingSessions: d.trainingSessions.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+  }));
+}
+function deleteTrainingSession(id: string) {
+  mutate((d) => ({ ...d, trainingSessions: d.trainingSessions.filter((s) => s.id !== id) }));
+}
+
+function updateTrainingPlan(id: string, patch: Partial<TrainingPlan>) {
+  mutate((d) => ({ ...d, trainingPlans: d.trainingPlans.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+}
+function addTrainingPlan(plan: Omit<TrainingPlan, "id">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, trainingPlans: [...d.trainingPlans, { ...plan, id }] }));
+  return id;
+}
+
+function addCue(c: Omit<CueEntry, "id">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, cues: [...d.cues, { ...c, id }] }));
+  return id;
+}
+function updateCue(id: string, patch: Partial<CueEntry>) {
+  mutate((d) => ({ ...d, cues: d.cues.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+}
+function deleteCue(id: string) {
+  mutate((d) => ({ ...d, cues: d.cues.filter((c) => c.id !== id) }));
+}
+
+function addVaccine(v: Omit<VaccineRecord, "id">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, vaccines: [...d.vaccines, { ...v, id }] }));
+  return id;
+}
+function updateVaccine(id: string, patch: Partial<VaccineRecord>) {
+  mutate((d) => ({ ...d, vaccines: d.vaccines.map((v) => (v.id === id ? { ...v, ...patch } : v)) }));
+}
+function deleteVaccine(id: string) {
+  mutate((d) => ({ ...d, vaccines: d.vaccines.filter((v) => v.id !== id) }));
+}
+
+function updateInsurance(patch: Partial<InsuranceInfo>) {
+  mutate((d) => ({ ...d, insurance: { ...d.insurance, ...patch } }));
+}
+function updateHealthProfile(patch: Partial<HealthProfile>) {
+  mutate((d) => ({ ...d, health: { ...d.health, ...patch } }));
+}
+function updatePuppy(patch: Partial<PuppyProfile>) {
+  mutate((d) => ({ ...d, puppy: { ...d.puppy, ...patch } }));
+}
+function updateCaregiverName(id: Caregiver, name: string) {
+  mutate((d) => ({
+    ...d,
+    caregivers: d.caregivers.map((c) => (c.id === id ? { ...c, displayName: name } : c)),
+  }));
+}
+function setHandoff(patch: Partial<HandoffState>) {
+  mutate((d) => ({ ...d, handoff: { ...d.handoff, ...patch, updatedAt: new Date().toISOString() } }));
+}
+function updateScheduleBlock(id: string, text: string) {
+  mutate((d) => ({ ...d, schedule: d.schedule.map((b) => (b.id === id ? { ...b, text } : b)) }));
+}
+function updateSettings(patch: Partial<AppSettings>) {
+  mutate((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
+}
+function dismissNudge(id: string) {
+  mutate((d) => ({ ...d, dismissedNudges: [...d.dismissedNudges, id] }));
+}
+
+function importJson(json: string): { ok: boolean; error?: string } {
+  try {
+    const parsed = JSON.parse(json) as AppData;
+    if (!parsed || typeof parsed !== "object" || parsed.version !== 1) {
+      return { ok: false, error: "This file doesn't look like a Stryder export." };
+    }
+    set(normalize(parsed));
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Couldn't parse that file as JSON." };
+  }
+}
+function exportJson(): string {
+  return JSON.stringify(currentData, null, 2);
+}
+function resetToSeed() {
+  set(buildSeedData());
+}
+
+const actions = {
+  addPotty,
+  updatePotty,
+  deletePotty,
+  addMeal,
+  updateMeal,
+  deleteMeal,
+  startNap,
+  endNap,
+  addNap,
+  updateNap,
+  deleteNap,
+  startOuting,
+  endOuting,
+  addOuting,
+  updateOuting,
+  deleteOuting,
+  addIncident,
+  updateIncident,
+  deleteIncident,
+  addTrainingSession,
+  updateTrainingSession,
+  deleteTrainingSession,
+  updateTrainingPlan,
+  addTrainingPlan,
+  addCue,
+  updateCue,
+  deleteCue,
+  addVaccine,
+  updateVaccine,
+  deleteVaccine,
+  updateInsurance,
+  updateHealthProfile,
+  updatePuppy,
+  updateCaregiverName,
+  setHandoff,
+  updateScheduleBlock,
+  updateSettings,
+  dismissNudge,
+  importJson,
+  exportJson,
+  resetToSeed,
+};
+
+export function useStore() {
+  const data = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return { data, ready: data !== null, ...actions };
+}

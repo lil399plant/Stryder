@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#46664f"/>
+  <g fill="none" stroke="#faf6ee" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <!-- simple sighthound-esque silhouette arc -->
+    <path d="M150 340 C150 260 190 190 250 170 C275 162 300 172 305 195 C308 210 300 222 288 232 C320 226 350 240 365 268 C378 292 372 320 350 336 L350 360" />
+    <path d="M188 250 C178 236 178 216 194 206" />
+    <circle cx="262" cy="196" r="6" fill="#faf6ee" stroke="none" />
+    <path d="M240 360 L240 320" />
+    <path d="M300 360 L300 330" />
+  </g>
+</svg>
