@@ -1,6 +1,5 @@
 "use client";
 
-import { PawPrint } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { BottomNav } from "@/components/nav/BottomNav";
 import { SideNav } from "@/components/nav/SideNav";
@@ -12,9 +11,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!ready) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-background text-foreground">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-forest text-forest-foreground">
-          <PawPrint className="h-6 w-6" />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- small static local asset, next/image is overkill */}
+        <img src="/icon.png" alt="" className="h-12 w-12 rounded-2xl object-cover" />
         <p className="text-[13px] text-muted-foreground">Loading Stryder…</p>
       </div>
     );

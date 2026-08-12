@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     title: "Stryder",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/icon.png",
+    apple: "/icon.png",
   },
 };
 
