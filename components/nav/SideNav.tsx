@@ -19,7 +19,7 @@ export function SideNav() {
         </div>
       </div>
       <ul className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <li key={href}>
@@ -32,7 +32,8 @@ export function SideNav() {
                     : "text-muted-foreground hover:bg-tan-soft/40 hover:text-foreground"
                 )}
               >
-                <Icon className="h-5 w-5" />
+                {/* eslint-disable-next-line @next/next/no-img-element -- small static local asset, next/image is overkill */}
+                <img src={icon} alt="" className="h-6 w-6 rounded-full object-cover" />
                 {label}
               </Link>
             </li>

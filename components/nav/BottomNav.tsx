@@ -14,7 +14,7 @@ export function BottomNav() {
       aria-label="Primary"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-between px-1">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, label, icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <li key={href} className="flex-1">
@@ -25,7 +25,15 @@ export function BottomNav() {
                   active ? "text-forest" : "text-muted-foreground"
                 )}
               >
-                <Icon className={cn("h-6 w-6", active && "stroke-[2.25]")} />
+                {/* eslint-disable-next-line @next/next/no-img-element -- small static local asset, next/image is overkill */}
+                <img
+                  src={icon}
+                  alt=""
+                  className={cn(
+                    "h-7 w-7 rounded-full object-cover ring-2 transition-all",
+                    active ? "ring-forest" : "ring-transparent"
+                  )}
+                />
                 {label}
               </Link>
             </li>
