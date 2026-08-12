@@ -58,6 +58,10 @@ export interface PottyEvent {
   tags: PottyTag[];
   notes?: string;
   caregiver: Caregiver;
+  /** Freeform — only used when type is "accident", in place of the preset
+   * location chips / trigger tags, since accidents don't fit neat presets. */
+  accidentWhere?: string;
+  accidentReason?: string;
 }
 
 // ---------- Meals ----------

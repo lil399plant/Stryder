@@ -88,9 +88,9 @@ A sixth screen, **Patterns** (`/analytics`, linked from More and from Today), sh
 
 ### Design choices worth knowing about
 
-- **Undo, not confirmation dialogs.** Quick Log actions apply immediately (that's the point — one tap) and show a 5-second Undo toast, rather than interrupting you with "are you sure?"
-- **Every timestamp is editable.** Tap any logged entry to open its full edit form.
-- **Accidents are informational, not alarming.** They're visually similar to routine potty entries — the restrained red accent is reserved for things flagged as an actual concern (an incident marked "needs follow-up" or "discuss with vet"), not normal puppy variation.
+- **Undo, not confirmation dialogs.** Quick Log actions — and deleting any entry — apply immediately and show a 5-second Undo toast, rather than interrupting you with "are you sure?"
+- **Every entry is editable and deletable, retroactively.** Tap any logged entry, past or present (Today's timeline or the Log calendar), to open its full edit form; a trash icon sits right in the sheet's header, no scrolling required.
+- **Accidents are informational, not alarming.** They're visually similar to routine potty entries — the restrained red accent is reserved for things flagged as an actual concern (an incident marked "needs follow-up" or "discuss with vet"), not normal puppy variation. Logging one asks freeform **Where** and **For what reason** instead of the usual location/trigger chips, since accidents rarely fit neat presets.
 - **No push notifications, no streaks, no fake AI coaching.** Per-plan "reminder" toggles exist as a placeholder for a future version but don't currently trigger anything.
 
 ---

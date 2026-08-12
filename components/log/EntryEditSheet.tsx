@@ -13,11 +13,32 @@ import { IncidentForm, type IncidentFormValues } from "./IncidentForm";
 import { Badge } from "@/components/ui/badge";
 import { formatClock } from "@/lib/time";
 import { TRAINING_OUTCOME_LABEL } from "@/lib/timeline";
+import { withoutIdAndKind } from "@/lib/utils";
 
 interface EntryEditSheetProps {
   item: TimelineItem | null;
   onClose: () => void;
 }
+
+const TITLES: Record<TimelineItem["kind"], string> = {
+  potty: "Edit bathroom entry",
+  meal: "Edit meal",
+  nap: "Edit nap",
+  downstairs: "Edit downstairs trip",
+  event: "Edit event",
+  incident: "Edit note",
+  training: "Training session",
+};
+
+const DELETED_LABELS: Record<TimelineItem["kind"], string> = {
+  potty: "Bathroom entry",
+  meal: "Meal",
+  nap: "Nap",
+  downstairs: "Downstairs trip",
+  event: "Event",
+  incident: "Note",
+  training: "Training session",
+};
 
 export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
   const store = useStore();
@@ -26,24 +47,64 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
 
   if (!item) return null;
 
-  const titles: Record<TimelineItem["kind"], string> = {
-    potty: "Edit bathroom entry",
-    meal: "Edit meal",
-    nap: "Edit nap",
-    downstairs: "Edit downstairs trip",
-    event: "Edit event",
-    incident: "Edit note",
-    training: "Training session",
-  };
-
-  const handleDelete = (fn: () => void, label: string) => {
-    fn();
-    showToast(`${label} deleted`);
+  // Deleting is available from any past or present entry — one tap on the
+  // trash icon in the header, no confirmation dialog, but always undoable
+  // (re-adds the exact entry) via the toast, matching how the rest of the
+  // app handles destructive one-taps.
+  const handleDelete = () => {
+    switch (item.kind) {
+      case "potty": {
+        const rest = withoutIdAndKind(item.data);
+        store.deletePotty(item.data.id);
+        showToast("Bathroom entry deleted", () => store.addPotty(rest));
+        break;
+      }
+      case "meal": {
+        const rest = withoutIdAndKind(item.data);
+        store.deleteMeal(item.data.id);
+        showToast("Meal deleted", () => store.addMeal(rest));
+        break;
+      }
+      case "nap": {
+        const rest = withoutIdAndKind(item.data);
+        store.deleteNap(item.data.id);
+        showToast("Nap deleted", () => store.addNap(rest));
+        break;
+      }
+      case "downstairs": {
+        const rest = withoutIdAndKind(item.data);
+        store.deleteDownstairsTrip(item.data.id);
+        showToast("Downstairs trip deleted", () => store.addDownstairsTrip(rest));
+        break;
+      }
+      case "event": {
+        const rest = withoutIdAndKind(item.data);
+        store.deleteEvent(item.data.id);
+        showToast("Event deleted", () => store.addEvent(rest));
+        break;
+      }
+      case "incident": {
+        const rest = withoutIdAndKind(item.data);
+        store.deleteIncident(item.data.id);
+        showToast("Note deleted", () => store.addIncident(rest));
+        break;
+      }
+      case "training":
+        return; // not deletable from here — see the read-only panel below
+    }
     onClose();
   };
 
+  const canDelete = item.kind !== "training";
+
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={titles[item.kind]}>
+    <Sheet
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={TITLES[item.kind]}
+      onDelete={canDelete ? handleDelete : undefined}
+      deleteLabel={canDelete ? `Delete ${DELETED_LABELS[item.kind].toLowerCase()}` : undefined}
+    >
       {item.kind === "potty" && (
         <BathroomForm
           initial={item.data}
@@ -55,7 +116,6 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deletePotty(item.data.id), "Bathroom entry")}
         />
       )}
       {item.kind === "meal" && (
@@ -69,7 +129,6 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deleteMeal(item.data.id), "Meal")}
         />
       )}
       {item.kind === "nap" && (
@@ -83,7 +142,6 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deleteNap(item.data.id), "Nap")}
         />
       )}
       {item.kind === "downstairs" && (
@@ -96,7 +154,6 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deleteDownstairsTrip(item.data.id), "Downstairs trip")}
         />
       )}
       {item.kind === "event" && (
@@ -109,7 +166,6 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deleteEvent(item.data.id), "Event")}
         />
       )}
       {item.kind === "incident" && (
@@ -122,7 +178,6 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deleteIncident(item.data.id), "Note")}
         />
       )}
       {item.kind === "training" && (

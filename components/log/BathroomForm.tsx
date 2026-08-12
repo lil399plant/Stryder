@@ -45,6 +45,7 @@ export function BathroomForm({
   const set = <K extends keyof BathroomFormValues>(key: K, val: BathroomFormValues[K]) =>
     setValues((v) => ({ ...v, [key]: val }));
 
+  const isAccident = values.type === "accident";
   const showPoopQuality = values.type === "poop" || values.type === "both";
 
   return (
@@ -69,27 +70,58 @@ export function BathroomForm({
         <ChoiceChips
           options={POTTY_TYPE_OPTIONS}
           value={values.type}
-          onChange={(v) => set("type", v as BathroomFormValues["type"])}
+          onChange={(v) =>
+            setValues((prev) => ({
+              ...prev,
+              type: v as BathroomFormValues["type"],
+              // Accident and success are two views of the same thing —
+              // keep them in sync so the data stays coherent either way.
+              success: v === "accident" ? "accident" : prev.success === "accident" ? "went-promptly" : prev.success,
+            }))
+          }
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Location</Label>
-        <ChoiceChips
-          options={POTTY_LOCATION_OPTIONS}
-          value={values.location}
-          onChange={(v) => set("location", v as BathroomFormValues["location"])}
-        />
-      </div>
+      {isAccident ? (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label>Where</Label>
+            <Input
+              value={values.accidentWhere ?? ""}
+              onChange={(e) => set("accidentWhere", e.target.value)}
+              placeholder="e.g. By the front door, on the rug"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>For what reason</Label>
+            <Input
+              value={values.accidentReason ?? ""}
+              onChange={(e) => set("accidentReason", e.target.value)}
+              placeholder="e.g. Excitement, missed the signal"
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Label>Location</Label>
+            <ChoiceChips
+              options={POTTY_LOCATION_OPTIONS}
+              value={values.location}
+              onChange={(v) => set("location", v as BathroomFormValues["location"])}
+            />
+          </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label>How it went</Label>
-        <ChoiceChips
-          options={SUCCESS_OPTIONS}
-          value={values.success}
-          onChange={(v) => set("success", v as BathroomFormValues["success"])}
-        />
-      </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>How it went</Label>
+            <ChoiceChips
+              options={SUCCESS_OPTIONS}
+              value={values.success}
+              onChange={(v) => set("success", v as BathroomFormValues["success"])}
+            />
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Label>Who logged it</Label>
@@ -105,20 +137,22 @@ export function BathroomForm({
         onClick={() => setExpanded((e) => !e)}
         className="flex items-center gap-1 self-start text-[13.5px] font-medium text-forest"
       >
-        {expanded ? "Hide details" : "Add trip type, quality, tags, notes"}
+        {expanded ? "Hide details" : isAccident ? "Add notes" : "Add trip type, quality, tags, notes"}
         {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
       {expanded && (
         <div className="flex flex-col gap-5 rounded-2xl bg-background/60 p-3.5">
-          <div className="flex flex-col gap-1.5">
-            <Label>Outdoor trip type</Label>
-            <ChoiceChips
-              options={OUTDOOR_TRIP_OPTIONS}
-              value={values.outdoorTripType}
-              onChange={(v) => set("outdoorTripType", v as BathroomFormValues["outdoorTripType"])}
-            />
-          </div>
+          {!isAccident && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Outdoor trip type</Label>
+              <ChoiceChips
+                options={OUTDOOR_TRIP_OPTIONS}
+                value={values.outdoorTripType}
+                onChange={(v) => set("outdoorTripType", v as BathroomFormValues["outdoorTripType"])}
+              />
+            </div>
+          )}
 
           {showPoopQuality && (
             <div className="flex flex-col gap-1.5">
@@ -131,14 +165,16 @@ export function BathroomForm({
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Possible triggers</Label>
-            <MultiChoiceChips
-              options={POTTY_TAG_OPTIONS}
-              values={values.tags}
-              onChange={(v) => set("tags", v as BathroomFormValues["tags"])}
-            />
-          </div>
+          {!isAccident && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Possible triggers</Label>
+              <MultiChoiceChips
+                options={POTTY_TAG_OPTIONS}
+                values={values.tags}
+                onChange={(v) => set("tags", v as BathroomFormValues["tags"])}
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label>Notes</Label>

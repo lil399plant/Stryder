@@ -83,8 +83,13 @@ export function titleFor(item: TimelineItem): string {
 
 export function subtitleFor(item: TimelineItem): string {
   switch (item.kind) {
-    case "potty":
+    case "potty": {
+      if (item.data.type === "accident") {
+        const parts = [item.data.accidentWhere, item.data.accidentReason].filter(Boolean);
+        return parts.length ? parts.join(" · ") : "No details yet";
+      }
       return `${POTTY_LOCATION_LABEL[item.data.location]} · ${SUCCESS_LABEL[item.data.success]}`;
+    }
     case "meal":
       return `${item.data.foodName || "—"} · ${APPETITE_LABEL[item.data.appetite]}`;
     case "nap": {
