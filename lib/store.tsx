@@ -19,7 +19,7 @@ import type {
   TrainingSession,
   VaccineRecord,
 } from "./types";
-import { buildSeedData } from "./seed";
+import { buildStarterData } from "./seed";
 import { makeId } from "./id";
 
 // A small external-store singleton (see useSyncExternalStore below) rather
@@ -30,7 +30,7 @@ import { makeId } from "./id";
 // browser-only external system — and it produces the exact same "nothing
 // until mounted, then real data" behavior without extra code.
 
-const STORAGE_KEY = "stryder-data-v1";
+const STORAGE_KEY = "stryder-data-v2";
 const API_ENDPOINT = "/api/data";
 
 let currentData: AppData | null = null;
@@ -93,7 +93,7 @@ function ensureInitialized() {
   if (existing) {
     currentData = existing;
   } else {
-    currentData = buildSeedData();
+    currentData = buildStarterData();
     saveToStorage(currentData);
   }
   pullFromServer();
@@ -356,7 +356,7 @@ function exportJson(): string {
   return JSON.stringify(currentData, null, 2);
 }
 function resetToSeed() {
-  set(buildSeedData());
+  set(buildStarterData());
 }
 
 const actions = {

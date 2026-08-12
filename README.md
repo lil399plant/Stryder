@@ -25,7 +25,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) — it redirects to `/today`.
 
-The app comes seeded with a few days of plausible sample data (potty trips, meals, naps, a training session, one lightweight incident note) so the timeline and Patterns page look useful immediately. The seed is generated client-side on first load and written to `localStorage`; nothing else is fetched from a server unless Redis is configured (below).
+The app starts genuinely blank — no fabricated logs. First load writes a starter record (Stryder's real name/breed/age, the ten training plan templates, the cue dictionary) to `localStorage`; every event array (potty, meals, naps, outings, notes, training sessions, vaccines) is empty until you log something or import real data (More → Data → Import JSON).
 
 **Production build:**
 
@@ -43,7 +43,7 @@ npx tsc --noEmit
 
 ### Resetting or starting fresh
 
-Go to **More → Data export & import → Reset to sample data** to wipe your device's data and reseed. Or, in your browser devtools, delete the `stryder-data-v1` key from `localStorage`.
+Go to **More → Data export & import → Erase all data** to wipe everything back to the blank starter state. Or, in your browser devtools, delete the `stryder-data-v2` key from `localStorage`.
 
 ---
 
@@ -81,7 +81,7 @@ Five areas, reachable from the bottom nav on mobile (a left sidebar on desktop):
 1. **Today** — the main dashboard: a compact status strip (time since last pee/poop/meal, current state, who's on duty), four one-tap Quick Log buttons (Pee / Poop / Meal / Nap) plus a secondary "Log an accident" button, a rules-based (never medical, always dismissible) "what might be next" card, a vertical timeline of the day, a caregiver handoff card, and an editable "Today's plan" schedule.
 2. **Log** — a Google Calendar-style **Day / Week / Month** view of everything logged. Naps and outings (walks) are duration blocks spanning their start–end time; pee, poop, meals, notes, and training sessions are point-in-time markers. Hover an event for a quick preview (tap on mobile) or click it to open and edit; clicking a day in Week/Month view jumps to that day. Adding an entry uses the same one-tap-default-plus-expandable-detail forms as everywhere else.
 3. **Training** — ten default training plans (crate comfort, outdoor potty routine, calm around pigeons, etc.), each with a goal, a plain-language "why it matters," a manually-set stage tracker (no assumed timeline), a "tiny next step," session history, and a shared cue dictionary for caregiver consistency.
-4. **Health** — vaccine/vet records (seeded ones are explicitly labeled as placeholders to replace with vet-confirmed dates), insurance info, and a private local-only health profile.
+4. **Health** — vaccine/vet records, insurance info, and a private local-only health profile. Vaccine records start empty; anything you add can be marked as a placeholder until it's vet-confirmed.
 5. **More** — Stryder's profile, caregiver names, a link to the cue dictionary and to Patterns (analytics), JSON export/import, appearance (light/dark/system) and "hide analytics" settings, and an About/privacy note.
 
 A sixth screen, **Patterns** (`/analytics`, linked from More and from Today), shows non-judgmental visualizations — bathroom timing by day, time between potty trips, nap duration by location, appetite history, accident tags, training frequency, and a couple of cautiously-worded "what seems to help" observations. It's descriptive only: no medical claims, no causal language, and it can be hidden entirely from Settings.
@@ -109,7 +109,7 @@ No accounts, no third-party analytics. `next build` is a standard Next.js server
 
 ## Data model
 
-Everything lives in one root object, versioned and persisted as a single JSON blob under the `stryder-data-v1` key. See [`lib/types.ts`](lib/types.ts) for the full, precisely-typed definitions — summarized here:
+Everything lives in one root object, versioned and persisted as a single JSON blob under the `stryder-data-v2` key (bumped from v1 when fabricated demo logs were removed from the starter state — anything still holding v1 data is treated as stale and replaced). See [`lib/types.ts`](lib/types.ts) for the full, precisely-typed definitions — summarized here:
 
 ```ts
 interface AppData {
@@ -161,7 +161,7 @@ lib/
   types.ts           # all data types
   store.tsx           # external store + localStorage/Redis sync + typed actions
   redis.ts             # Upstash client, only ever imported server-side
-  seed.ts             # sample-data generator
+  seed.ts             # blank-starter-state builder (no fabricated logs)
   rules.ts            # "next likely needs" rules engine
   analytics.ts         # Patterns page computations
   timeline.ts          # unified timeline item type + label maps
@@ -188,5 +188,5 @@ components/
 ## What this is not
 
 - Not a medical or diagnostic tool, and it never claims to be. Health-area copy and the About/privacy note in More say this explicitly.
-- Not connected to a vet, insurer, or any external service — the seeded vaccine records are clearly labeled placeholders to replace with real, vet-confirmed information.
+- Not connected to a vet, insurer, or any external service — vaccine records you add can be flagged as placeholders until they're vet-confirmed.
 - Not multi-user. If Redis is linked, both caregivers see the *same* household record (no per-person accounts or permissions); without Redis, data stays on the device/browser it was entered on — use Export/Import (More → Data) to move it manually.

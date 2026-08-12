@@ -40,11 +40,11 @@ export function DataSection() {
 
   const handleReset = () => {
     const confirmed = window.confirm(
-      "This replaces all current data with the original sample data. This can't be undone after you leave this screen. Continue?"
+      "This permanently erases every logged entry and returns Stryder's profile, training plans, and cues to their starting defaults. This can't be undone. Continue?"
     );
     if (!confirmed) return;
     store.resetToSeed();
-    showToast("Reset to sample data");
+    showToast("Reset to blank state");
   };
 
   return (
@@ -105,7 +105,7 @@ export function DataSection() {
         <div className="mt-2 border-t border-border pt-3">
           <Button variant="ghost" className="gap-1.5 text-muted-foreground" onClick={handleReset}>
             <RotateCcw className="h-4 w-4" />
-            Reset to sample data
+            Erase all data
           </Button>
         </div>
       </CardContent>
