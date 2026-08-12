@@ -5,7 +5,13 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { addDays, isToday as checkIsToday } from "@/lib/time";
 import { getTimelineForDay, type TimelineItem } from "@/lib/timeline";
-import { computeNudges, getActiveNap, caregiverName as caregiverNameFor } from "@/lib/rules";
+import {
+  computeNudges,
+  getActiveNap,
+  getActiveDownstairs,
+  getActiveEvent,
+  caregiverName as caregiverNameFor,
+} from "@/lib/rules";
 import { DateHeader } from "@/components/today/DateHeader";
 import { StatusStrip } from "@/components/today/StatusStrip";
 import { QuickLogButtons } from "@/components/today/QuickLogButtons";
@@ -41,6 +47,8 @@ export default function TodayPage() {
   const showingToday = checkIsToday(selectedDate);
   const items = getTimelineForDay(data, selectedDate);
   const activeNap = getActiveNap(data);
+  const activeDownstairs = getActiveDownstairs(data);
+  const activeEvent = getActiveEvent(data);
   const nudges = showingToday ? computeNudges(data, now) : [];
   const caregiverName = (id: Caregiver) => caregiverNameFor(data, id);
 
@@ -105,6 +113,36 @@ export default function TodayPage() {
     showToast("Nap ended", () => store.updateNap(activeNap.id, { endTime: undefined }));
   };
 
+  const handleDownstairsStart = () => {
+    const id = store.startDownstairs({
+      startTime: new Date().toISOString(),
+      outdoorTripType: "walk-first",
+      caregiver: onDuty,
+    });
+    showToast("Downstairs trip started", () => store.deleteDownstairsTrip(id));
+  };
+
+  const handleDownstairsEnd = () => {
+    if (!activeDownstairs) return;
+    store.endDownstairs(activeDownstairs.id);
+    showToast("Downstairs trip ended", () => store.updateDownstairsTrip(activeDownstairs.id, { endTime: undefined }));
+  };
+
+  const handleEventStart = () => {
+    const id = store.startEvent({
+      startTime: new Date().toISOString(),
+      category: "other",
+      caregiver: onDuty,
+    });
+    showToast("Event started", () => store.deleteEvent(id));
+  };
+
+  const handleEventEnd = () => {
+    if (!activeEvent) return;
+    store.endEvent(activeEvent.id);
+    showToast("Event ended", () => store.updateEvent(activeEvent.id, { endTime: undefined }));
+  };
+
   const handleAccident = () => {
     const id = store.addPotty({
       timestamp: new Date().toISOString(),
@@ -135,8 +173,14 @@ export default function TodayPage() {
             onMeal={handleMeal}
             onNapStart={handleNapStart}
             onNapEnd={handleNapEnd}
+            onDownstairsStart={handleDownstairsStart}
+            onDownstairsEnd={handleDownstairsEnd}
+            onEventStart={handleEventStart}
+            onEventEnd={handleEventEnd}
             onAccident={handleAccident}
             activeNap={activeNap}
+            activeDownstairs={activeDownstairs}
+            activeEvent={activeEvent}
             now={now}
           />
           <NextNeedsCard nudges={nudges} now={now} />

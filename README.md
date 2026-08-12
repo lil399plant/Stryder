@@ -25,7 +25,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) — it redirects to `/today`.
 
-The app starts genuinely blank — no fabricated logs. First load writes a starter record (Stryder's real name/breed/age, the ten training plan templates, the cue dictionary) to `localStorage`; every event array (potty, meals, naps, outings, notes, training sessions, vaccines) is empty until you log something or import real data (More → Data → Import JSON).
+The app starts genuinely blank — no fabricated logs. First load writes a starter record (Stryder's real name/breed/age, the ten training plan templates, the cue dictionary) to `localStorage`; every event array (potty, meals, naps, downstairs trips, events, notes, training sessions, vaccines) is empty until you log something or import real data (More → Data → Import JSON).
 
 **Production build:**
 
@@ -78,8 +78,8 @@ The repo is set up for Vercel:
 
 Five areas, reachable from the bottom nav on mobile (a left sidebar on desktop):
 
-1. **Today** — the main dashboard: a compact status strip (time since last pee/poop/meal, current state, who's on duty), four one-tap Quick Log buttons (Pee / Poop / Meal / Nap) plus a secondary "Log an accident" button, a rules-based (never medical, always dismissible) "what might be next" card, a vertical timeline of the day, a caregiver handoff card, and an editable "Today's plan" schedule.
-2. **Log** — a Google Calendar-style **Day / Week / Month** view of everything logged. Naps and outings (walks) are duration blocks spanning their start–end time; pee, poop, meals, notes, and training sessions are point-in-time markers. Hover an event for a quick preview (tap on mobile) or click it to open and edit; clicking a day in Week/Month view jumps to that day. Adding an entry uses the same one-tap-default-plus-expandable-detail forms as everywhere else.
+1. **Today** — the main dashboard: a compact status strip (time since last pee/poop/meal, current state, who's on duty), six one-tap Quick Log buttons (Pee / Poop / Meal / Nap / Downstairs / Event) plus a secondary "Log an accident" button, a rules-based (never medical, always dismissible) "what might be next" card, a vertical timeline of the day, a caregiver handoff card, and an editable "Today's plan" schedule. Nap, Downstairs, and Event are start/stop — tapping starts one, and an active card appears above the grid with an End button (only one of each can be active at a time).
+2. **Log** — a Google Calendar-style **Day / Week / Month** view of everything logged. Naps, downstairs trips (walks), and events (vet visits, training classes, restaurants — anything outside the normal routine) are duration blocks spanning their start–end time; pee, poop, meals, notes, and training sessions are point-in-time markers. Hover an event for a quick preview (tap on mobile) or click it to open and edit; clicking a day in Week/Month view jumps to that day. Adding an entry uses the same one-tap-default-plus-expandable-detail forms as everywhere else.
 3. **Training** — ten default training plans (crate comfort, outdoor potty routine, calm around pigeons, etc.), each with a goal, a plain-language "why it matters," a manually-set stage tracker (no assumed timeline), a "tiny next step," session history, and a shared cue dictionary for caregiver consistency.
 4. **Health** — vaccine/vet records, insurance info, and a private local-only health profile. Vaccine records start empty; anything you add can be marked as a placeholder until it's vet-confirmed.
 5. **More** — Stryder's profile, caregiver names, a link to the cue dictionary and to Patterns (analytics), JSON export/import, appearance (light/dark/system) and "hide analytics" settings, and an About/privacy note.
@@ -122,7 +122,8 @@ interface AppData {
   pottyEvents: PottyEvent[];        // pee / poop / both / accident — a point in time
   mealEvents: MealEvent[];          // a point in time
   napEvents: NapEvent[];            // startTime, optional endTime = "in progress" — a duration
-  outings: OutingEvent[];           // the walk itself — startTime/endTime, a duration
+  downstairsTrips: DownstairsEvent[]; // the walk itself — startTime/endTime, a duration
+  events: SpecialEvent[];           // vet/training-class/restaurant/etc — startTime/endTime, a duration
   incidentEvents: IncidentEvent[];  // lightweight observations, never diagnostic
 
   trainingPlans: TrainingPlan[];    // goal, stages, current stage index, notes
@@ -145,7 +146,7 @@ Design notes:
 - **Every mutation is additive/replaceable, never destructive by default.** Quick Log actions return the new entry's id so the calling screen can offer an exact-inverse Undo (e.g. delete-the-entry-just-added), rather than a generic "rewind everything" undo stack.
 - **`lib/rules.ts`** contains the entire "what might be next" logic — a handful of plain elapsed-time rules (e.g. "2+ hours since any potty" or "just woke from a nap"), each carrying its own plain-language `basis` string so the card is transparent about why it's showing, never a black box.
 - **`lib/analytics.ts`** contains every Patterns computation — counts and averages over what's actually been logged, nothing predictive or inferred.
-- **`lib/timeline.ts`** defines the single `TimelineItem` union every screen renders from (Today's vertical timeline, the Log calendar, the edit sheets) — `nap` and `outing` are duration items, everything else is a point in time, so both views always agree.
+- **`lib/timeline.ts`** defines the single `TimelineItem` union every screen renders from (Today's vertical timeline, the Log calendar, the edit sheets) — `nap`, `downstairs`, and `event` are duration items, everything else is a point in time, so both views always agree.
 
 ---
 
@@ -174,8 +175,8 @@ components/
   shell/       # AppShell
   theme/       # ThemeController (applies light/dark/system)
   today/       # DateHeader, StatusStrip, QuickLogButtons, NextNeedsCard, HandoffCard, PlanBlocks
-  log/         # BathroomForm, MealForm, NapForm, OutingForm, IncidentForm, timelineVisual (shared
-               # icon/color/label rules), TimelineRow, GroupedTimeline, Add/Edit sheets
+  log/         # BathroomForm, MealForm, NapForm, DownstairsForm, EventForm, IncidentForm,
+               # timelineVisual (shared icon/color/label rules), TimelineRow, GroupedTimeline, Add/Edit sheets
   calendar/    # CalendarView pieces: DayView, WeekView, MonthView, DayColumn, EventBlock, EventTooltip
   training/    # PlanCard, PlanDetail, SessionForm, CueDictionary
   health/      # VaccineList/Form, InsuranceForm, ProfileForm

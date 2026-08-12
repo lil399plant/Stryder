@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Droplets, UtensilsCrossed, Moon, Footprints, StickyNote } from "lucide-react";
+import { ChevronLeft, ChevronRight, Droplets, UtensilsCrossed, Moon, Footprints, Sparkles, StickyNote } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,8 @@ const ADD_BUTTONS: { kind: Exclude<AddEntryKind, null>; label: string; icon: typ
   { kind: "potty", label: "Bathroom", icon: Droplets },
   { kind: "meal", label: "Meal", icon: UtensilsCrossed },
   { kind: "nap", label: "Nap", icon: Moon },
-  { kind: "outing", label: "Outing", icon: Footprints },
+  { kind: "downstairs", label: "Downstairs", icon: Footprints },
+  { kind: "event", label: "Event", icon: Sparkles },
   { kind: "incident", label: "Note", icon: StickyNote },
 ];
 
@@ -37,7 +38,8 @@ const LEGEND = [
   { label: "Bathroom", dot: KIND_STYLES.potty.dot },
   { label: "Meal", dot: KIND_STYLES.meal.dot },
   { label: "Nap", dot: KIND_STYLES.nap.dot },
-  { label: "Outing", dot: KIND_STYLES.outing.dot },
+  { label: "Downstairs", dot: KIND_STYLES.downstairs.dot },
+  { label: "Event", dot: KIND_STYLES.event.dot },
   { label: "Notes / training", dot: KIND_STYLES.incident.dot },
 ];
 
@@ -81,7 +83,7 @@ export default function LogPage() {
         <div>
           <h1 className="text-[22px] font-semibold leading-tight">Log</h1>
           <p className="text-[13px] text-muted-foreground">
-            Calendar view — naps and outings span time, everything else is a point in time.
+            Calendar view — naps, downstairs trips, and events span time, everything else is a point in time.
           </p>
         </div>
       </div>

@@ -33,10 +33,11 @@ export function usePreview() {
   };
 }
 
-/** A nap or outing — spans a time range. */
+/** A nap, downstairs trip, or special event — spans a time range. */
 export function DurationBlock({ item, caregiverName, onSelect, style, compact }: BlockProps) {
   const kindStyle = KIND_STYLES[item.kind];
-  const isOngoing = (item.kind === "nap" || item.kind === "outing") && !item.data.endTime;
+  const isOngoing =
+    (item.kind === "nap" || item.kind === "downstairs" || item.kind === "event") && !item.data.endTime;
   const { previewing, handlers } = usePreview();
 
   return (
@@ -59,7 +60,11 @@ export function DurationBlock({ item, caregiverName, onSelect, style, compact }:
       {!compact && (
         <span className="mt-0.5 block truncate text-[10px] opacity-80">
           {formatClock(item.time)}
-          {isOngoing ? " – now" : (item.kind === "nap" || item.kind === "outing") && item.data.endTime ? `–${formatClock(item.data.endTime)}` : ""}
+          {isOngoing
+            ? " – now"
+            : (item.kind === "nap" || item.kind === "downstairs" || item.kind === "event") && item.data.endTime
+              ? `–${formatClock(item.data.endTime)}`
+              : ""}
         </span>
       )}
       {previewing && (

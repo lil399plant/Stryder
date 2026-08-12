@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Caregiver, OutingEvent } from "@/lib/types";
+import type { Caregiver, DownstairsEvent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,27 +10,27 @@ import { ChoiceChips } from "@/components/ui/choice-chips";
 import { OUTDOOR_TRIP_OPTIONS } from "@/lib/options";
 import { formatDateTimeLocal, fromDateTimeLocal } from "@/lib/time";
 
-export type OutingFormValues = Omit<OutingEvent, "id" | "kind">;
+export type DownstairsFormValues = Omit<DownstairsEvent, "id" | "kind">;
 
-interface OutingFormProps {
-  initial: OutingFormValues;
+interface DownstairsFormProps {
+  initial: DownstairsFormValues;
   caregivers: { id: Caregiver; displayName: string }[];
-  onSubmit: (values: OutingFormValues) => void;
+  onSubmit: (values: DownstairsFormValues) => void;
   onCancel: () => void;
   onDelete?: () => void;
   submitLabel?: string;
 }
 
-export function OutingForm({
+export function DownstairsForm({
   initial,
   caregivers,
   onSubmit,
   onCancel,
   onDelete,
   submitLabel = "Save",
-}: OutingFormProps) {
-  const [values, setValues] = React.useState<OutingFormValues>(initial);
-  const set = <K extends keyof OutingFormValues>(key: K, val: OutingFormValues[K]) =>
+}: DownstairsFormProps) {
+  const [values, setValues] = React.useState<DownstairsFormValues>(initial);
+  const set = <K extends keyof DownstairsFormValues>(key: K, val: DownstairsFormValues[K]) =>
     setValues((v) => ({ ...v, [key]: val }));
 
   return (
@@ -61,11 +61,11 @@ export function OutingForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Type of outing</Label>
+        <Label>Type of trip</Label>
         <ChoiceChips
           options={OUTDOOR_TRIP_OPTIONS}
           value={values.outdoorTripType}
-          onChange={(v) => set("outdoorTripType", v as OutingFormValues["outdoorTripType"])}
+          onChange={(v) => set("outdoorTripType", v as DownstairsFormValues["outdoorTripType"])}
         />
       </div>
 

@@ -7,7 +7,8 @@ import type { TimelineItem } from "@/lib/timeline";
 import { BathroomForm, type BathroomFormValues } from "./BathroomForm";
 import { MealForm, type MealFormValues } from "./MealForm";
 import { NapForm, type NapFormValues } from "./NapForm";
-import { OutingForm, type OutingFormValues } from "./OutingForm";
+import { DownstairsForm, type DownstairsFormValues } from "./DownstairsForm";
+import { EventForm, type EventFormValues } from "./EventForm";
 import { IncidentForm, type IncidentFormValues } from "./IncidentForm";
 import { Badge } from "@/components/ui/badge";
 import { formatClock } from "@/lib/time";
@@ -29,7 +30,8 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
     potty: "Edit bathroom entry",
     meal: "Edit meal",
     nap: "Edit nap",
-    outing: "Edit outing",
+    downstairs: "Edit downstairs trip",
+    event: "Edit event",
     incident: "Edit note",
     training: "Training session",
   };
@@ -84,17 +86,30 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
           onDelete={() => handleDelete(() => store.deleteNap(item.data.id), "Nap")}
         />
       )}
-      {item.kind === "outing" && (
-        <OutingForm
+      {item.kind === "downstairs" && (
+        <DownstairsForm
           initial={item.data}
           caregivers={caregivers}
-          onSubmit={(values: OutingFormValues) => {
-            store.updateOuting(item.data.id, values);
-            showToast("Outing updated");
+          onSubmit={(values: DownstairsFormValues) => {
+            store.updateDownstairsTrip(item.data.id, values);
+            showToast("Downstairs trip updated");
             onClose();
           }}
           onCancel={onClose}
-          onDelete={() => handleDelete(() => store.deleteOuting(item.data.id), "Outing")}
+          onDelete={() => handleDelete(() => store.deleteDownstairsTrip(item.data.id), "Downstairs trip")}
+        />
+      )}
+      {item.kind === "event" && (
+        <EventForm
+          initial={item.data}
+          caregivers={caregivers}
+          onSubmit={(values: EventFormValues) => {
+            store.updateEvent(item.data.id, values);
+            showToast("Event updated");
+            onClose();
+          }}
+          onCancel={onClose}
+          onDelete={() => handleDelete(() => store.deleteEvent(item.data.id), "Event")}
         />
       )}
       {item.kind === "incident" && (

@@ -114,17 +114,43 @@ export interface NapEvent {
   caregiver: Caregiver;
 }
 
-// ---------- Outings (go outside) ----------
-// A duration event, distinct from the point-in-time potty log — an outing
-// is the walk/trip itself; any pee/poop that happened during it is still
-// logged separately as its own PottyEvent.
+// ---------- Downstairs trips (go outside) ----------
+// A duration event, distinct from the point-in-time potty log — a
+// downstairs trip is the walk/outing itself; any pee/poop that happened
+// during it is still logged separately as its own PottyEvent.
 
-export interface OutingEvent {
+export interface DownstairsEvent {
   id: string;
-  kind: "outing";
+  kind: "downstairs";
   startTime: ISODateTime;
   endTime?: ISODateTime;
   outdoorTripType?: OutdoorTripType;
+  notes?: string;
+  caregiver: Caregiver;
+}
+
+// ---------- Special events ----------
+// Things outside the normal downstairs-potty-trip / indoor-play routine —
+// vet visits, training classes, restaurants, travel, etc. Also a duration
+// event.
+
+export type SpecialEventCategory =
+  | "vet"
+  | "training-class"
+  | "restaurant"
+  | "groomer"
+  | "playdate"
+  | "travel"
+  | "pet-store"
+  | "other";
+
+export interface SpecialEvent {
+  id: string;
+  kind: "event";
+  startTime: ISODateTime;
+  endTime?: ISODateTime;
+  category: SpecialEventCategory;
+  title?: string;
   notes?: string;
   caregiver: Caregiver;
 }
@@ -154,7 +180,7 @@ export interface IncidentEvent {
   caregiver: Caregiver;
 }
 
-export type LogEvent = PottyEvent | MealEvent | NapEvent | OutingEvent | IncidentEvent;
+export type LogEvent = PottyEvent | MealEvent | NapEvent | DownstairsEvent | SpecialEvent | IncidentEvent;
 
 // ---------- Training ----------
 
@@ -286,7 +312,8 @@ export interface AppData {
   pottyEvents: PottyEvent[];
   mealEvents: MealEvent[];
   napEvents: NapEvent[];
-  outings: OutingEvent[];
+  downstairsTrips: DownstairsEvent[];
+  events: SpecialEvent[];
   incidentEvents: IncidentEvent[];
   trainingPlans: TrainingPlan[];
   trainingSessions: TrainingSession[];

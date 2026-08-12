@@ -7,10 +7,11 @@ import type { Caregiver } from "@/lib/types";
 import { BathroomForm, type BathroomFormValues } from "./BathroomForm";
 import { MealForm, type MealFormValues } from "./MealForm";
 import { NapForm, type NapFormValues } from "./NapForm";
-import { OutingForm, type OutingFormValues } from "./OutingForm";
+import { DownstairsForm, type DownstairsFormValues } from "./DownstairsForm";
+import { EventForm, type EventFormValues } from "./EventForm";
 import { IncidentForm, type IncidentFormValues } from "./IncidentForm";
 
-export type AddEntryKind = "potty" | "meal" | "nap" | "outing" | "incident" | null;
+export type AddEntryKind = "potty" | "meal" | "nap" | "downstairs" | "event" | "incident" | null;
 
 interface AddEntrySheetProps {
   kind: AddEntryKind;
@@ -99,9 +100,9 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
           />
         </Sheet>
       )}
-      {kind === "outing" && (
-        <Sheet open onOpenChange={(o) => !o && onClose()} title="Log an outing">
-          <OutingForm
+      {kind === "downstairs" && (
+        <Sheet open onOpenChange={(o) => !o && onClose()} title="Log a downstairs trip">
+          <DownstairsForm
             initial={{
               startTime: nowIso,
               endTime: undefined,
@@ -110,10 +111,32 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               caregiver: onDuty,
             }}
             caregivers={caregivers}
-            submitLabel="Log outing"
-            onSubmit={(values: OutingFormValues) => {
-              store.addOuting(values);
-              showToast("Outing logged");
+            submitLabel="Log trip"
+            onSubmit={(values: DownstairsFormValues) => {
+              store.addDownstairsTrip(values);
+              showToast("Downstairs trip logged");
+              onClose();
+            }}
+            onCancel={onClose}
+          />
+        </Sheet>
+      )}
+      {kind === "event" && (
+        <Sheet open onOpenChange={(o) => !o && onClose()} title="Log an event">
+          <EventForm
+            initial={{
+              startTime: nowIso,
+              endTime: undefined,
+              category: "other",
+              title: "",
+              notes: "",
+              caregiver: onDuty,
+            }}
+            caregivers={caregivers}
+            submitLabel="Log event"
+            onSubmit={(values: EventFormValues) => {
+              store.addEvent(values);
+              showToast("Event logged");
               onClose();
             }}
             onCancel={onClose}

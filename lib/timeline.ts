@@ -1,10 +1,11 @@
 import type {
   AppData,
+  DownstairsEvent,
   IncidentEvent,
   MealEvent,
   NapEvent,
-  OutingEvent,
   PottyEvent,
+  SpecialEvent,
   TrainingSession,
 } from "./types";
 import { isSameDay } from "./time";
@@ -13,19 +14,21 @@ export type TimelineItem =
   | { kind: "potty"; time: string; data: PottyEvent }
   | { kind: "meal"; time: string; data: MealEvent }
   | { kind: "nap"; time: string; data: NapEvent }
-  | { kind: "outing"; time: string; data: OutingEvent }
+  | { kind: "downstairs"; time: string; data: DownstairsEvent }
+  | { kind: "event"; time: string; data: SpecialEvent }
   | { kind: "incident"; time: string; data: IncidentEvent }
   | { kind: "training"; time: string; data: TrainingSession };
 
 /** Duration-based items (have a start + optional end) vs. point-in-time items. */
-export const DURATION_KINDS: TimelineItem["kind"][] = ["nap", "outing"];
+export const DURATION_KINDS: TimelineItem["kind"][] = ["nap", "downstairs", "event"];
 
 export function getAllTimelineItems(data: AppData): TimelineItem[] {
   const items: TimelineItem[] = [];
   for (const p of data.pottyEvents) items.push({ kind: "potty", time: p.timestamp, data: p });
   for (const m of data.mealEvents) items.push({ kind: "meal", time: m.timestamp, data: m });
   for (const n of data.napEvents) items.push({ kind: "nap", time: n.startTime, data: n });
-  for (const o of data.outings) items.push({ kind: "outing", time: o.startTime, data: o });
+  for (const d of data.downstairsTrips) items.push({ kind: "downstairs", time: d.startTime, data: d });
+  for (const e of data.events) items.push({ kind: "event", time: e.startTime, data: e });
   for (const i of data.incidentEvents) items.push({ kind: "incident", time: i.timestamp, data: i });
   for (const t of data.trainingSessions) items.push({ kind: "training", time: t.timestamp, data: t });
   return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
@@ -43,8 +46,11 @@ export function getTimelineForDay(data: AppData, date: Date): TimelineItem[] {
   for (const n of data.napEvents) {
     if (isSameDay(new Date(n.startTime), date)) items.push({ kind: "nap", time: n.startTime, data: n });
   }
-  for (const o of data.outings) {
-    if (isSameDay(new Date(o.startTime), date)) items.push({ kind: "outing", time: o.startTime, data: o });
+  for (const d of data.downstairsTrips) {
+    if (isSameDay(new Date(d.startTime), date)) items.push({ kind: "downstairs", time: d.startTime, data: d });
+  }
+  for (const e of data.events) {
+    if (isSameDay(new Date(e.startTime), date)) items.push({ kind: "event", time: e.startTime, data: e });
   }
   for (const i of data.incidentEvents) {
     if (isSameDay(new Date(i.timestamp), date)) items.push({ kind: "incident", time: i.timestamp, data: i });
@@ -176,4 +182,15 @@ export const TRAINING_OUTCOME_LABEL: Record<TrainingSession["outcome"], string> 
   neutral: "Neutral",
   "too-hard": "Too hard",
   "needs-easier-step": "Needs easier step",
+};
+
+export const SPECIAL_EVENT_CATEGORY_LABEL: Record<SpecialEvent["category"], string> = {
+  vet: "Vet visit",
+  "training-class": "Training class",
+  restaurant: "Restaurant",
+  groomer: "Groomer",
+  playdate: "Playdate",
+  travel: "Travel",
+  "pet-store": "Pet store",
+  other: "Other",
 };

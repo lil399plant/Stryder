@@ -126,3 +126,14 @@ export const CAREGIVER_OPTIONS: ChipOption[] = [
   { value: "me", label: "Me" },
   { value: "ribo", label: "Ribo" },
 ];
+
+export const SPECIAL_EVENT_CATEGORY_OPTIONS: ChipOption[] = [
+  { value: "vet", label: "Vet visit" },
+  { value: "training-class", label: "Training class" },
+  { value: "restaurant", label: "Restaurant" },
+  { value: "groomer", label: "Groomer" },
+  { value: "playdate", label: "Playdate" },
+  { value: "travel", label: "Travel" },
+  { value: "pet-store", label: "Pet store" },
+  { value: "other", label: "Other" },
+];

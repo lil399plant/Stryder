@@ -12,6 +12,14 @@ export function getActiveNap(data: AppData) {
   return data.napEvents.find((n) => !n.endTime) ?? null;
 }
 
+export function getActiveDownstairs(data: AppData) {
+  return data.downstairsTrips.find((d) => !d.endTime) ?? null;
+}
+
+export function getActiveEvent(data: AppData) {
+  return data.events.find((e) => !e.endTime) ?? null;
+}
+
 export function computeCurrentState(data: AppData, now: Date = new Date()): PuppyState {
   const activeNap = getActiveNap(data);
   if (activeNap) return "napping";
@@ -37,12 +45,19 @@ export function lastOfType(events: LogEvent[], predicate: (e: LogEvent) => boole
 }
 
 function timeOf(e: LogEvent): number {
-  if (e.kind === "nap" || e.kind === "outing") return new Date(e.startTime).getTime();
+  if (e.kind === "nap" || e.kind === "downstairs" || e.kind === "event") return new Date(e.startTime).getTime();
   return new Date(e.timestamp).getTime();
 }
 
 export function allEvents(data: AppData): LogEvent[] {
-  return [...data.pottyEvents, ...data.mealEvents, ...data.napEvents, ...data.outings, ...data.incidentEvents];
+  return [
+    ...data.pottyEvents,
+    ...data.mealEvents,
+    ...data.napEvents,
+    ...data.downstairsTrips,
+    ...data.events,
+    ...data.incidentEvents,
+  ];
 }
 
 export function lastPottyOfType(data: AppData, types: PottyType[]) {

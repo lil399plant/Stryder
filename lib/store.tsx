@@ -6,15 +6,16 @@ import type {
   AppSettings,
   Caregiver,
   CueEntry,
+  DownstairsEvent,
   HandoffState,
   HealthProfile,
   IncidentEvent,
   InsuranceInfo,
   MealEvent,
   NapEvent,
-  OutingEvent,
   PottyEvent,
   PuppyProfile,
+  SpecialEvent,
   TrainingPlan,
   TrainingSession,
   VaccineRecord,
@@ -65,7 +66,7 @@ export function useSyncStatus(): SyncStatus {
 /** Fills in fields added after a user's data was first saved, so older
  * localStorage payloads (or imports) don't crash on a missing array. */
 function normalize(data: AppData): AppData {
-  return { ...data, outings: data.outings ?? [] };
+  return { ...data, downstairsTrips: data.downstairsTrips ?? [], events: data.events ?? [] };
 }
 
 function loadFromStorage(): AppData | null {
@@ -226,27 +227,55 @@ function deleteNap(id: string) {
   mutate((d) => ({ ...d, napEvents: d.napEvents.filter((n) => n.id !== id) }));
 }
 
-function startOuting(e: Omit<OutingEvent, "id" | "kind" | "endTime">): string {
+function startDownstairs(e: Omit<DownstairsEvent, "id" | "kind" | "endTime">): string {
   const id = makeId();
-  mutate((d) => ({ ...d, outings: [...d.outings, { ...e, id, kind: "outing" }] }));
+  mutate((d) => ({ ...d, downstairsTrips: [...d.downstairsTrips, { ...e, id, kind: "downstairs" }] }));
   return id;
 }
-function addOuting(e: Omit<OutingEvent, "id" | "kind">): string {
+function addDownstairsTrip(e: Omit<DownstairsEvent, "id" | "kind">): string {
   const id = makeId();
-  mutate((d) => ({ ...d, outings: [...d.outings, { ...e, id, kind: "outing" }] }));
+  mutate((d) => ({ ...d, downstairsTrips: [...d.downstairsTrips, { ...e, id, kind: "downstairs" }] }));
   return id;
 }
-function endOuting(id: string, endTime?: string) {
+function endDownstairs(id: string, endTime?: string) {
   mutate((d) => ({
     ...d,
-    outings: d.outings.map((o) => (o.id === id ? { ...o, endTime: endTime ?? new Date().toISOString() } : o)),
+    downstairsTrips: d.downstairsTrips.map((o) =>
+      o.id === id ? { ...o, endTime: endTime ?? new Date().toISOString() } : o
+    ),
   }));
 }
-function updateOuting(id: string, patch: Partial<OutingEvent>) {
-  mutate((d) => ({ ...d, outings: d.outings.map((o) => (o.id === id ? { ...o, ...patch } : o)) }));
+function updateDownstairsTrip(id: string, patch: Partial<DownstairsEvent>) {
+  mutate((d) => ({
+    ...d,
+    downstairsTrips: d.downstairsTrips.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+  }));
 }
-function deleteOuting(id: string) {
-  mutate((d) => ({ ...d, outings: d.outings.filter((o) => o.id !== id) }));
+function deleteDownstairsTrip(id: string) {
+  mutate((d) => ({ ...d, downstairsTrips: d.downstairsTrips.filter((o) => o.id !== id) }));
+}
+
+function startEvent(e: Omit<SpecialEvent, "id" | "kind" | "endTime">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, events: [...d.events, { ...e, id, kind: "event" }] }));
+  return id;
+}
+function addEvent(e: Omit<SpecialEvent, "id" | "kind">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, events: [...d.events, { ...e, id, kind: "event" }] }));
+  return id;
+}
+function endEvent(id: string, endTime?: string) {
+  mutate((d) => ({
+    ...d,
+    events: d.events.map((ev) => (ev.id === id ? { ...ev, endTime: endTime ?? new Date().toISOString() } : ev)),
+  }));
+}
+function updateEvent(id: string, patch: Partial<SpecialEvent>) {
+  mutate((d) => ({ ...d, events: d.events.map((ev) => (ev.id === id ? { ...ev, ...patch } : ev)) }));
+}
+function deleteEvent(id: string) {
+  mutate((d) => ({ ...d, events: d.events.filter((ev) => ev.id !== id) }));
 }
 
 function addIncident(e: Omit<IncidentEvent, "id" | "kind">): string {
@@ -371,11 +400,16 @@ const actions = {
   addNap,
   updateNap,
   deleteNap,
-  startOuting,
-  endOuting,
-  addOuting,
-  updateOuting,
-  deleteOuting,
+  startDownstairs,
+  endDownstairs,
+  addDownstairsTrip,
+  updateDownstairsTrip,
+  deleteDownstairsTrip,
+  startEvent,
+  endEvent,
+  addEvent,
+  updateEvent,
+  deleteEvent,
   addIncident,
   updateIncident,
   deleteIncident,

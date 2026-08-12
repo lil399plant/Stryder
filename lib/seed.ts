@@ -45,7 +45,8 @@ export function buildStarterData(): AppData {
     pottyEvents: [],
     mealEvents: [],
     napEvents: [],
-    outings: [],
+    downstairsTrips: [],
+    events: [],
     incidentEvents: [],
     trainingPlans: [
       {
