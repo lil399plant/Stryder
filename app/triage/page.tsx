@@ -1,23 +1,44 @@
 "use client";
 
 import * as React from "react";
-import { Bot, Loader2, Send, Trash2, User } from "lucide-react";
+import { Bot, Loader2, Send, Trash2, User, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { makeId } from "@/lib/id";
-import { useTriageMessages, setTriageMessages, type TriageMessage } from "@/lib/triage";
+import { useTriageMessages, setTriageMessages, updateTriageMessage, type TriageMessage } from "@/lib/triage";
+import { looksLikeLogEntry } from "@/lib/log-heuristic";
+import { useStore } from "@/lib/store";
+import { useToast } from "@/components/ui/toast";
+import type { ImportExtraction } from "@/lib/import-text";
+import { countExtraction } from "@/lib/import-text";
+import { commitExtraction } from "@/lib/import-commit";
+import { ImportPreviewList } from "@/components/import/ImportPreviewList";
 
 // Standalone "Ask AI" module. Deliberately disconnected from the rest of the
 // app: it doesn't read or write AppData, doesn't touch Supabase, and its
 // history lives only in this browser's localStorage (see lib/triage.ts).
+//
+// The one deliberate bridge: if a message you typed reads like a log entry
+// ("8am-9am walk, peed quickly"), a button offers to import it into the
+// real shared log. That import only ever happens on explicit confirmation,
+// after a preview, and only ever adds entries — see lib/import-commit.ts.
+
+type ReviewState = { messageId: string; extraction: ImportExtraction; skipped: number };
 
 export default function TriagePage() {
   const messages = useTriageMessages();
+  const store = useStore();
+  const { showToast } = useToast();
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const [extractingId, setExtractingId] = React.useState<string | null>(null);
+  const [extractError, setExtractError] = React.useState<{ messageId: string; message: string } | null>(null);
+  const [review, setReview] = React.useState<ReviewState | null>(null);
 
   React.useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -74,6 +95,58 @@ export default function TriagePage() {
     setError(null);
   };
 
+  const requestImport = async (m: TriageMessage) => {
+    if (!store.data || extractingId) return;
+    setExtractingId(m.id);
+    setExtractError(null);
+    try {
+      const res = await fetch("/api/import-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: m.content,
+          referenceIso: m.createdAt,
+          tzOffsetMinutes: new Date().getTimezoneOffset(),
+          caregivers: store.data.caregivers.map((c) => ({ id: c.id, displayName: c.displayName })),
+        }),
+      });
+      const body = await res.json().catch(() => null);
+
+      if (!res.ok || !body?.extraction) {
+        const msg =
+          res.status === 501
+            ? "AI import isn't set up yet — add a DEEPSEEK_API_KEY to enable it."
+            : res.status === 422
+              ? "Couldn't find a clear log entry in that message."
+              : "Couldn't reach the AI right now. Try again in a moment.";
+        setExtractError({ messageId: m.id, message: msg });
+        return;
+      }
+
+      setReview({ messageId: m.id, extraction: body.extraction as ImportExtraction, skipped: body.skipped ?? 0 });
+    } catch {
+      setExtractError({ messageId: m.id, message: "Couldn't reach the AI right now. Try again in a moment." });
+    } finally {
+      setExtractingId(null);
+    }
+  };
+
+  const dismissImport = (id: string) => {
+    updateTriageMessage(id, { importState: "dismissed" });
+    setExtractError((prev) => (prev?.messageId === id ? null : prev));
+  };
+
+  const confirmImport = () => {
+    if (!review) return;
+    const total = commitExtraction(store, review.extraction);
+    updateTriageMessage(review.messageId, { importState: "imported" });
+    showToast(`Added ${total} ${total === 1 ? "entry" : "entries"} to the log`);
+    setReview(null);
+  };
+
+  const caregiverName = (id: string) => store.data?.caregivers.find((c) => c.id === id)?.displayName ?? id;
+  const reviewTotal = review ? countExtraction(review.extraction) : 0;
+
   return (
     <div className="flex h-[calc(100dvh-8rem)] flex-col md:h-[calc(100dvh-3rem)]">
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -97,33 +170,66 @@ export default function TriagePage() {
             <p className="text-[14px] font-medium text-muted-foreground">Ask me anything</p>
             <p className="text-[12px] text-muted-foreground/80">
               This chat is separate from Today, Log, Training, and Health — nothing here is saved to
-              your shared log.
+              your shared log unless you say so.
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {messages.map((m) => (
-              <div key={m.id} className={cn("flex items-end gap-2", m.role === "user" && "flex-row-reverse")}>
-                <div
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                    m.role === "user" ? "bg-forest-soft text-forest-soft-foreground" : "bg-tan-soft text-tan-soft-foreground"
+            {messages.map((m) => {
+              const suggestImport = m.role === "user" && !m.importState && looksLikeLogEntry(m.content);
+              const isExtracting = extractingId === m.id;
+              const err = extractError?.messageId === m.id ? extractError.message : null;
+
+              return (
+                <div key={m.id} className="flex flex-col gap-1.5">
+                  <div className={cn("flex items-end gap-2", m.role === "user" && "flex-row-reverse")}>
+                    <div
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                        m.role === "user" ? "bg-forest-soft text-forest-soft-foreground" : "bg-tan-soft text-tan-soft-foreground"
+                      )}
+                    >
+                      {m.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+                    </div>
+                    <div
+                      className={cn(
+                        "max-w-[80%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[14.5px] leading-relaxed",
+                        m.role === "user"
+                          ? "bg-forest text-forest-foreground"
+                          : "bg-surface-raised border border-border text-foreground"
+                      )}
+                    >
+                      {m.content}
+                    </div>
+                  </div>
+
+                  {suggestImport && (
+                    <div className="ml-9 flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => requestImport(m)}
+                        disabled={isExtracting}
+                      >
+                        {isExtracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        {isExtracting ? "Reading…" : "Import Manual Log"}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => dismissImport(m.id)} disabled={isExtracting}>
+                        Not now
+                      </Button>
+                    </div>
                   )}
-                >
-                  {m.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
-                </div>
-                <div
-                  className={cn(
-                    "max-w-[80%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-[14.5px] leading-relaxed",
-                    m.role === "user"
-                      ? "bg-forest text-forest-foreground"
-                      : "bg-surface-raised border border-border text-foreground"
+                  {m.importState === "imported" && (
+                    <div className="ml-9 flex items-center gap-1 text-[12px] text-forest">
+                      <Check className="h-3.5 w-3.5" />
+                      Added to log
+                    </div>
                   )}
-                >
-                  {m.content}
+                  {err && <p className="ml-9 text-[12px] text-concern">{err}</p>}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {sending && (
               <div className="flex items-end gap-2">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-tan-soft text-tan-soft-foreground">
@@ -167,6 +273,37 @@ export default function TriagePage() {
           {sending ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Send className="h-4.5 w-4.5" />}
         </Button>
       </form>
+
+      <Sheet
+        open={review !== null}
+        onOpenChange={(o) => {
+          if (!o) setReview(null);
+        }}
+        title="Add to your log?"
+        description="Review what the AI found before adding it to your shared log."
+        footer={
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setReview(null)}>
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={confirmImport} disabled={reviewTotal === 0}>
+              Add {reviewTotal} {reviewTotal === 1 ? "entry" : "entries"}
+            </Button>
+          </div>
+        }
+      >
+        {review && (
+          <div className="flex flex-col gap-4">
+            {review.skipped > 0 && (
+              <p className="text-[12.5px] text-muted-foreground">
+                Skipped {review.skipped} {review.skipped === 1 ? "item" : "items"} that didn&apos;t look like a
+                complete log entry.
+              </p>
+            )}
+            <ImportPreviewList extraction={review.extraction} caregiverName={caregiverName} />
+          </div>
+        )}
+      </Sheet>
     </div>
   );
 }

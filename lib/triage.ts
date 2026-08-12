@@ -16,6 +16,10 @@ export type TriageMessage = {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  /** Set once the caregiver acts on the "this looks like a log entry"
+   * suggestion for this message (see app/triage/page.tsx) — undefined
+   * means the suggestion hasn't been decided yet. */
+  importState?: "imported" | "dismissed";
 };
 
 const STORAGE_KEY = "stryder-triage-chat-v1";
@@ -71,6 +75,11 @@ export function setTriageMessages(messages: TriageMessage[]) {
   current = messages;
   saveToStorage(messages);
   notify();
+}
+
+export function updateTriageMessage(id: string, patch: Partial<TriageMessage>) {
+  if (!current) return;
+  setTriageMessages(current.map((m) => (m.id === id ? { ...m, ...patch } : m)));
 }
 
 export function useTriageMessages(): TriageMessage[] {
