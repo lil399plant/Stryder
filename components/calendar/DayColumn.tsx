@@ -10,38 +10,33 @@ import { isSameDay } from "@/lib/time";
 
 const MIN_BLOCK_HEIGHT = 22;
 const POINT_ROW_GAP = 20;
+// Point markers (pee, poop, meals, notes...) always render above duration
+// blocks, however many of the latter are stacked — see layoutDurations.
+const POINT_Z_INDEX = 100;
 
 interface LaidOutDuration {
   item: TimelineItem;
   top: number;
   height: number;
-  lane: number;
-  lanes: number;
+  zIndex: number;
 }
 
+/** Everything renders in one single full-width column now — no side-by-side
+ * lanes. When two duration events (naps, downstairs trips, events) overlap
+ * in time, the one that started earlier stacks visually on top (higher
+ * z-index) rather than being squeezed into its own narrower lane. */
 function layoutDurations(items: TimelineItem[], now: Date): LaidOutDuration[] {
   const sorted = [...items].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-  const laneEnds: number[] = []; // end-minute of the last item placed in each lane
-  const placed: LaidOutDuration[] = [];
-
-  for (const item of sorted) {
+  return sorted.map((item, i) => {
     const start = new Date(item.time);
     const top = minutesSinceMidnight(start);
     const rawEnd = endTimeFor(item, now);
     const endMinutes = isSameDay(rawEnd, start) ? minutesSinceMidnight(rawEnd) : 1440;
     const height = Math.max(MIN_BLOCK_HEIGHT, endMinutes - top);
-
-    let lane = laneEnds.findIndex((end) => end <= top);
-    if (lane === -1) {
-      lane = laneEnds.length;
-      laneEnds.push(top + height);
-    } else {
-      laneEnds[lane] = top + height;
-    }
-    placed.push({ item, top, height, lane, lanes: 1 });
-  }
-  const totalLanes = Math.max(1, laneEnds.length);
-  return placed.map((p) => ({ ...p, lanes: totalLanes }));
+    // Earlier items were placed first, so a higher index means a later
+    // start — give earlier starts the higher z-index.
+    return { item, top, height, zIndex: sorted.length - i };
+  });
 }
 
 function layoutPoints(items: TimelineItem[]): { item: TimelineItem; top: number }[] {
@@ -72,33 +67,26 @@ export function DayColumn({ date, data, caregiverName, onSelect, now, compact }:
   const laidDurations = layoutDurations(durationItems, now);
   const laidPoints = layoutPoints(pointItems);
 
-  const durationWidthPct = compact ? 100 : 60;
-
   return (
     <div className="relative" style={{ height: DAY_HEIGHT }}>
       {Array.from({ length: 24 }, (_, h) => (
         <div key={h} className="absolute inset-x-0 border-t border-border/70" style={{ top: h * HOUR_HEIGHT }} />
       ))}
 
-      {laidDurations.map(({ item, top, height, lane, lanes }) => (
+      {laidDurations.map(({ item, top, height, zIndex }) => (
         <DurationBlock
           key={`${item.kind}-${item.data.id}`}
           item={item}
           caregiverName={caregiverName}
           onSelect={onSelect}
           compact={compact}
-          style={{
-            top,
-            height,
-            left: `${(lane / lanes) * durationWidthPct}%`,
-            width: `${durationWidthPct / lanes - 1}%`,
-          }}
+          style={{ top, height, left: 0, right: 0, zIndex }}
         />
       ))}
 
       {isSameDay(date, now) && (
         <div
-          className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-forest"
+          className="pointer-events-none absolute inset-x-0 z-40 border-t-2 border-forest"
           style={{ top: minutesSinceMidnight(now) }}
         >
           <span className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-forest" />
@@ -112,11 +100,7 @@ export function DayColumn({ date, data, caregiverName, onSelect, now, compact }:
           caregiverName={caregiverName}
           onSelect={onSelect}
           compact={compact}
-          style={{
-            top,
-            left: compact ? "50%" : `${durationWidthPct + 2}%`,
-            transform: compact ? "translateX(-50%)" : undefined,
-          }}
+          style={{ top, left: 0, zIndex: POINT_Z_INDEX }}
         />
       ))}
     </div>
