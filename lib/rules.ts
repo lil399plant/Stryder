@@ -3,10 +3,19 @@
 // states the plain-language rule that produced it so it's easy to trust
 // or ignore. See NextNeedsCard for how these render.
 
-import type { AppData, Caregiver, LogEvent, PottyType } from "./types";
+import type { AppData, Caregiver, LogEvent, NudgeThresholds, PottyType } from "./types";
 import { minutesBetween } from "./time";
 
 export type PuppyState = "napping" | "settling" | "overnight" | "awake";
+
+/** Single source of truth for the nudge thresholds' default values — used
+ * to seed new data (lib/seed.ts) and as a defensive fallback here if older
+ * stored data somehow reaches computeNudges without them. */
+export const DEFAULT_NUDGE_THRESHOLDS: NudgeThresholds = {
+  pottyGapHours: 2,
+  awakeStretchHours: 2.5,
+  mealGapHours: 6,
+};
 
 export function getActiveNap(data: AppData) {
   return data.napEvents.find((n) => !n.endTime) ?? null;
@@ -74,6 +83,24 @@ export function lastMeal(data: AppData) {
   return matches[0] ?? null;
 }
 
+/** Elapsed minutes between `since` and `now`, minus any time spent
+ * napping in that window — "time awake," not raw wall-clock time, so a
+ * long nap doesn't itself make the last potty trip look overdue. A nap
+ * still in progress counts up to `now`. */
+export function awakeMinutesSince(data: AppData, since: Date, now: Date): number {
+  let minutes = minutesBetween(since, now);
+  for (const nap of data.napEvents) {
+    const napStart = new Date(nap.startTime);
+    const napEnd = nap.endTime ? new Date(nap.endTime) : now;
+    const overlapStart = napStart > since ? napStart : since;
+    const overlapEnd = napEnd < now ? napEnd : now;
+    if (overlapEnd > overlapStart) {
+      minutes -= minutesBetween(overlapStart, overlapEnd);
+    }
+  }
+  return Math.max(0, minutes);
+}
+
 export function lastCompletedNap(data: AppData) {
   const matches = data.napEvents
     .filter((n) => n.endTime)
@@ -100,9 +127,14 @@ export interface Nudge {
  * Produces at most 2 gentle, dismissible "what might be next" nudges.
  * Purely rules-based on elapsed time — never medical, never alarmist.
  */
+function formatHours(hours: number): string {
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, "");
+}
+
 export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
   const nudges: Nudge[] = [];
   const state = computeCurrentState(data, now);
+  const thresholds = data.settings.nudgeThresholds ?? DEFAULT_NUDGE_THRESHOLDS;
 
   const activeNap = getActiveNap(data);
   const lastPottyAny = lastPottyOfType(data, ["pee", "poop"]);
@@ -122,14 +154,15 @@ export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
     }
   }
 
-  // Rule: long stretch since any potty while awake
+  // Rule: long stretch AWAKE since any potty — nap time doesn't count, and
+  // while he's currently napping this is treated as 0 (no flag at all).
   if (lastPottyAny && state !== "napping") {
-    const minsSincePotty = minutesBetween(new Date(lastPottyAny.timestamp), now);
-    if (minsSincePotty >= 120) {
+    const minsAwakeSincePotty = awakeMinutesSince(data, new Date(lastPottyAny.timestamp), now);
+    if (minsAwakeSincePotty >= thresholds.pottyGapHours * 60) {
       nudges.push({
         id: "long-since-potty",
-        text: `It's been ${Math.floor(minsSincePotty / 60)}h ${minsSincePotty % 60}m since the last potty trip.`,
-        basis: "Rule: flags when 2+ hours have passed since any logged pee or poop.",
+        text: `It's been ${Math.floor(minsAwakeSincePotty / 60)}h ${minsAwakeSincePotty % 60}m awake since the last potty trip.`,
+        basis: `Rule: flags when ${formatHours(thresholds.pottyGapHours)}+ hours awake (nap time doesn't count) have passed since any logged pee or poop.`,
       });
     }
   }
@@ -137,11 +170,11 @@ export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
   // Rule: long active stretch since last nap ended
   if (lastNap?.endTime && !activeNap && state === "awake") {
     const minsAwake = minutesBetween(new Date(lastNap.endTime), now);
-    if (minsAwake >= 150) {
+    if (minsAwake >= thresholds.awakeStretchHours * 60) {
       nudges.push({
         id: "long-awake-stretch",
         text: "Long active stretch since last nap.",
-        basis: "Rule: flags when 2.5+ hours have passed since the last nap ended.",
+        basis: `Rule: flags when ${formatHours(thresholds.awakeStretchHours)}+ hours have passed since the last nap ended.`,
       });
     }
   }
@@ -150,11 +183,11 @@ export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
   const hour = now.getHours();
   if (lastMealEvent && hour >= 7 && hour <= 20) {
     const minsSinceMeal = minutesBetween(new Date(lastMealEvent.timestamp), now);
-    if (minsSinceMeal >= 360) {
+    if (minsSinceMeal >= thresholds.mealGapHours * 60) {
       nudges.push({
         id: "meal-gap",
         text: "It's been a while since the last meal — might be worth checking the feeding schedule.",
-        basis: "Rule: flags when 6+ hours have passed since the last logged meal during daytime.",
+        basis: `Rule: flags when ${formatHours(thresholds.mealGapHours)}+ hours have passed since the last logged meal during daytime.`,
       });
     }
   }

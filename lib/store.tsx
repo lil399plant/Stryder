@@ -22,6 +22,7 @@ import type {
 } from "./types";
 import { buildStarterData } from "./seed";
 import { makeId } from "./id";
+import { DEFAULT_NUDGE_THRESHOLDS } from "./rules";
 
 // A small external-store singleton (see useSyncExternalStore below) rather
 // than React Context + useState. Reading from localStorage must happen
@@ -66,7 +67,15 @@ export function useSyncStatus(): SyncStatus {
 /** Fills in fields added after a user's data was first saved, so older
  * localStorage payloads (or imports) don't crash on a missing array. */
 function normalize(data: AppData): AppData {
-  return { ...data, downstairsTrips: data.downstairsTrips ?? [], events: data.events ?? [] };
+  return {
+    ...data,
+    downstairsTrips: data.downstairsTrips ?? [],
+    events: data.events ?? [],
+    settings: {
+      ...data.settings,
+      nudgeThresholds: data.settings?.nudgeThresholds ?? { ...DEFAULT_NUDGE_THRESHOLDS },
+    },
+  };
 }
 
 function loadFromStorage(): AppData | null {
@@ -366,6 +375,17 @@ function updateScheduleBlock(id: string, text: string) {
 function updateSettings(patch: Partial<AppSettings>) {
   mutate((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
 }
+/** Merges against the store's current settings, not a React-render-time
+ * snapshot — matters here because several nudge-threshold fields can each
+ * commit (on blur) in quick succession, e.g. when Tab moves focus through
+ * them. Reading `mutate`'s fresh `d` instead of a component-closure value
+ * avoids one commit clobbering another with stale data. */
+function updateNudgeThresholds(patch: Partial<AppSettings["nudgeThresholds"]>) {
+  mutate((d) => ({
+    ...d,
+    settings: { ...d.settings, nudgeThresholds: { ...d.settings.nudgeThresholds, ...patch } },
+  }));
+}
 function dismissNudge(id: string) {
   mutate((d) => ({ ...d, dismissedNudges: [...d.dismissedNudges, id] }));
 }
@@ -432,6 +452,7 @@ const actions = {
   setHandoff,
   updateScheduleBlock,
   updateSettings,
+  updateNudgeThresholds,
   dismissNudge,
   importJson,
   exportJson,

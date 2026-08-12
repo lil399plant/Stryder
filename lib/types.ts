@@ -301,10 +301,20 @@ export interface ScheduleBlock {
 
 // ---------- Settings ----------
 
+/** Caregiver-adjustable thresholds for the Today page's "what might be
+ * next" nudges — see computeNudges in lib/rules.ts, which is the single
+ * source of truth for how these are used and what they default to. */
+export interface NudgeThresholds {
+  pottyGapHours: number;
+  awakeStretchHours: number;
+  mealGapHours: number;
+}
+
 export interface AppSettings {
   theme: "light" | "dark" | "system";
   hideAnalytics: boolean;
   remindersEnabled: boolean;
+  nudgeThresholds: NudgeThresholds;
 }
 
 // ---------- Root ----------

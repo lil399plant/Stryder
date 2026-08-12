@@ -1,5 +1,6 @@
 import { makeId } from "./id";
 import type { AppData } from "./types";
+import { DEFAULT_NUDGE_THRESHOLDS } from "./rules";
 
 // The app's starting state for a brand-new install (or after "Reset").
 // No hypothetical/fabricated logs — every event array starts empty so the
@@ -231,6 +232,7 @@ export function buildStarterData(): AppData {
       theme: "system",
       hideAnalytics: false,
       remindersEnabled: false,
+      nudgeThresholds: { ...DEFAULT_NUDGE_THRESHOLDS },
     },
     dismissedNudges: [],
   };
