@@ -42,12 +42,13 @@ export const KIND_STYLES: Record<TimelineItem["kind"], { bg: string; fg: string;
 /** Point-in-time entries that get a distinctive emoji instead of the
  * generic kind icon/color-dot, everywhere IconFor or a calendar dot
  * renders them (Today/Log timeline, Month chips, Week/Day markers). Only
- * the specific sub-types below are overridden — potty "both" and meal
- * treat/enrichment keep the default look. */
+ * the specific sub-types below are overridden — meal treat/enrichment
+ * keep the default look. */
 export function emojiFor(item: TimelineItem): string | null {
   if (item.kind === "potty") {
     if (item.data.type === "pee") return "🍋";
     if (item.data.type === "poop") return "💩";
+    if (item.data.type === "both") return "🍋💩";
     if (item.data.type === "accident") return "❌";
     return null;
   }
@@ -57,6 +58,13 @@ export function emojiFor(item: TimelineItem): string | null {
     return null;
   }
   return null;
+}
+
+/** True for multi-character emoji (currently just the pee+poop combo) —
+ * these render smaller so both glyphs still fit the same icon slot a
+ * single emoji would occupy. */
+export function isEmojiCombo(emoji: string): boolean {
+  return [...emoji].length > 1;
 }
 
 /** "New behavior observed" notes are deliberately kept off the calendar's
@@ -76,11 +84,21 @@ const EMOJI_SIZE_BY_ICON_CLASS: [needle: string, textClass: string][] = [
   ["h-3", "text-[13px]"],
 ];
 
-function emojiSizeClass(className: string): string {
-  for (const [needle, cls] of EMOJI_SIZE_BY_ICON_CLASS) {
+// Roughly 60% of the single-emoji size — two glyphs at this size occupy
+// about the same footprint as one at full size.
+const COMBO_EMOJI_SIZE_BY_ICON_CLASS: [needle: string, textClass: string][] = [
+  ["h-2.5", "text-[7px]"],
+  ["h-3.5", "text-[8px]"],
+  ["h-4.5", "text-[11px]"],
+  ["h-3", "text-[8px]"],
+];
+
+function emojiSizeClass(className: string, combo: boolean): string {
+  const table = combo ? COMBO_EMOJI_SIZE_BY_ICON_CLASS : EMOJI_SIZE_BY_ICON_CLASS;
+  for (const [needle, cls] of table) {
     if (className.includes(needle)) return cls;
   }
-  return "text-[15px]";
+  return combo ? "text-[9px]" : "text-[15px]";
 }
 
 export function IconFor({ item, className }: { item: TimelineItem; className?: string }) {
@@ -88,7 +106,13 @@ export function IconFor({ item, className }: { item: TimelineItem; className?: s
   const emoji = emojiFor(item);
   if (emoji) {
     return (
-      <span className={cn("inline-flex shrink-0 items-center justify-center leading-none", cls, emojiSizeClass(cls))}>
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center leading-none",
+          cls,
+          emojiSizeClass(cls, isEmojiCombo(emoji))
+        )}
+      >
         {emoji}
       </span>
     );

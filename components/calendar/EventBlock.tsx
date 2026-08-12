@@ -4,7 +4,7 @@ import * as React from "react";
 import type { TimelineItem } from "@/lib/timeline";
 import type { Caregiver } from "@/lib/types";
 import { formatClock } from "@/lib/time";
-import { IconFor, titleFor, KIND_STYLES, emojiFor } from "@/components/log/timelineVisual";
+import { IconFor, titleFor, KIND_STYLES, emojiFor, isEmojiCombo } from "@/components/log/timelineVisual";
 import { EventTooltipContent } from "./EventTooltip";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +91,14 @@ export function PointMarker({ item, caregiverName, onSelect, style, compact }: B
       {...handlers}
     >
       {emoji ? (
-        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[12px] leading-none">{emoji}</span>
+        <span
+          className={cn(
+            "flex h-3.5 w-3.5 shrink-0 items-center justify-center leading-none",
+            isEmojiCombo(emoji) ? "text-[8px]" : "text-[12px]"
+          )}
+        >
+          {emoji}
+        </span>
       ) : (
         <span
           className={cn(
