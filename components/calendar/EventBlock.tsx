@@ -4,7 +4,7 @@ import * as React from "react";
 import type { TimelineItem } from "@/lib/timeline";
 import type { Caregiver } from "@/lib/types";
 import { formatClock } from "@/lib/time";
-import { IconFor, titleFor, KIND_STYLES } from "@/components/log/timelineVisual";
+import { IconFor, titleFor, KIND_STYLES, emojiFor } from "@/components/log/timelineVisual";
 import { EventTooltipContent } from "./EventTooltip";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +79,7 @@ export function DurationBlock({ item, caregiverName, onSelect, style, compact }:
 /** A pee / poop / meal / note / training session — a single point in time. */
 export function PointMarker({ item, caregiverName, onSelect, style, compact }: BlockProps) {
   const kindStyle = KIND_STYLES[item.kind];
+  const emoji = emojiFor(item);
   const { previewing, handlers } = usePreview();
 
   return (
@@ -89,12 +90,16 @@ export function PointMarker({ item, caregiverName, onSelect, style, compact }: B
       className="absolute flex items-center gap-1"
       {...handlers}
     >
-      <span
-        className={cn(
-          "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-surface",
-          kindStyle.dot
-        )}
-      />
+      {emoji ? (
+        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center text-[12px] leading-none">{emoji}</span>
+      ) : (
+        <span
+          className={cn(
+            "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full ring-2 ring-surface",
+            kindStyle.dot
+          )}
+        />
+      )}
       {!compact && (
         <span className="truncate rounded-full bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground shadow-sm">
           {titleFor(item)}

@@ -5,9 +5,10 @@ import { getTimelineForDay, type TimelineItem } from "@/lib/timeline";
 import { getMonthGrid } from "@/lib/calendar-grid";
 import { isToday, isSameDay } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { IconFor, titleFor, KIND_STYLES } from "@/components/log/timelineVisual";
+import { IconFor, titleFor, KIND_STYLES, isDayNoteItem } from "@/components/log/timelineVisual";
 import { EventTooltipContent } from "./EventTooltip";
 import { usePreview } from "./EventBlock";
+import { DayNoteBadge } from "./DayNoteBadge";
 import { formatClock } from "@/lib/time";
 
 const MAX_CHIPS = 3;
@@ -77,7 +78,10 @@ export function MonthView({
       </div>
       <div className="grid grid-cols-7">
         {cells.map((cell) => {
-          const items = getTimelineForDay(data, cell.date)
+          const dayItems = getTimelineForDay(data, cell.date);
+          const dayNotes = dayItems.filter(isDayNoteItem);
+          const items = dayItems
+            .filter((i) => !isDayNoteItem(i))
             .slice()
             .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
           const overflow = items.length - MAX_CHIPS;
@@ -101,6 +105,7 @@ export function MonthView({
               >
                 {cell.date.getDate()}
               </span>
+              {dayNotes.length > 0 && <DayNoteBadge items={dayNotes} onSelect={onSelect} />}
               <div className="flex flex-col gap-0.5">
                 {items.slice(0, MAX_CHIPS).map((item) => (
                   <MonthChip

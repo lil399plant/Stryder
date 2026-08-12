@@ -3,7 +3,7 @@
 import type { TimelineItem } from "@/lib/timeline";
 import type { AppData, Caregiver } from "@/lib/types";
 import { getTimelineForDay } from "@/lib/timeline";
-import { isDurationItem, endTimeFor } from "@/components/log/timelineVisual";
+import { isDurationItem, endTimeFor, isDayNoteItem } from "@/components/log/timelineVisual";
 import { DAY_HEIGHT, HOUR_HEIGHT, minutesSinceMidnight } from "@/lib/calendar-grid";
 import { DurationBlock, PointMarker } from "./EventBlock";
 import { isSameDay } from "@/lib/time";
@@ -65,7 +65,7 @@ interface DayColumnProps {
 }
 
 export function DayColumn({ date, data, caregiverName, onSelect, now, compact }: DayColumnProps) {
-  const items = getTimelineForDay(data, date);
+  const items = getTimelineForDay(data, date).filter((i) => !isDayNoteItem(i));
   const durationItems = items.filter(isDurationItem);
   const pointItems = items.filter((i) => !isDurationItem(i));
 
