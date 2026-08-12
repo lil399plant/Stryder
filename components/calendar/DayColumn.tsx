@@ -100,7 +100,7 @@ export function DayColumn({ date, data, caregiverName, onSelect, now, compact }:
           caregiverName={caregiverName}
           onSelect={onSelect}
           compact={compact}
-          style={{ top, left: 0, zIndex: POINT_Z_INDEX }}
+          style={{ top, left: "50%", transform: "translateX(-50%)", zIndex: POINT_Z_INDEX }}
         />
       ))}
     </div>
