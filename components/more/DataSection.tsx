@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useStore, useSyncStatus } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { downloadJson, readFileAsText } from "@/lib/export";
+import { ImportTextSheet } from "@/components/more/ImportTextSheet";
 
 export function DataSection() {
   const store = useStore();
@@ -101,6 +102,14 @@ export function DataSection() {
             className="hidden"
             onChange={handleFileChange}
           />
+        </div>
+        <p className="text-[12.5px] text-muted-foreground">
+          &ldquo;Import JSON&rdquo; above replaces all data on this device with the file&apos;s contents
+          (a full backup restore). The AI import below is different — it only ever adds new entries on
+          top of what&apos;s already logged.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <ImportTextSheet />
         </div>
         <div className="mt-2 border-t border-border pt-3">
           <Button variant="ghost" className="gap-1.5 text-muted-foreground" onClick={handleReset}>
