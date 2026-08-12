@@ -18,6 +18,9 @@
   --forest-foreground: #f7faf5;
   --forest-soft: #e2ebe1;
   --forest-soft-foreground: #35513d;
+  /* Lighter than forest-soft — just for the nav icon backgrounds, kept
+     separate so it doesn't lighten badges/status-strip chips elsewhere. */
+  --forest-pale: #eef4ec;
 
   --blue: #5f7f9e;
   --blue-foreground: #f6f9fb;
@@ -50,6 +53,7 @@
   --forest-foreground: #16241a;
   --forest-soft: #24352a;
   --forest-soft-foreground: #b7d6bd;
+  --forest-pale: #30442f;
 
   --blue: #9ab8d3;
   --blue-foreground: #16232f;
@@ -80,6 +84,7 @@
   --color-forest-foreground: var(--forest-foreground);
   --color-forest-soft: var(--forest-soft);
   --color-forest-soft-foreground: var(--forest-soft-foreground);
+  --color-forest-pale: var(--forest-pale);
 
   --color-blue: var(--blue);
   --color-blue-foreground: var(--blue-foreground);

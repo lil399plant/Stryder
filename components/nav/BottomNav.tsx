@@ -30,7 +30,7 @@ export function BottomNav() {
                   src={icon}
                   alt=""
                   className={cn(
-                    "h-7 w-7 rounded-full bg-forest-soft object-cover ring-2 transition-all",
+                    "h-7 w-7 rounded-full bg-forest-pale object-cover ring-2 transition-all",
                     active ? "ring-forest" : "ring-transparent"
                   )}
                 />
