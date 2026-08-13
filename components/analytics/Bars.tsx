@@ -41,7 +41,7 @@ export function VBarChart({
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (
-    <div className="flex items-end gap-1.5" style={{ height: 72 }}>
+    <div className="flex gap-1.5" style={{ height: 72 }}>
       {data.map((d, i) => (
         <div key={i} className="flex flex-1 flex-col items-center gap-1">
           <div className="flex w-full flex-1 items-end">

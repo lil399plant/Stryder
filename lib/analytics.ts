@@ -6,6 +6,12 @@
 import type { AppData, PottyTag } from "./types";
 import { addDays, startOfDay, minutesBetween, isSameDay } from "./time";
 
+/** Anything this long or longer is treated as overnight sleep, not a waking
+ * gap — without this, a whole night (often logged starting in the evening
+ * and ending well into the morning) would badly skew both the nap-duration
+ * chart and the potty-gap averages below. */
+const OVERNIGHT_SLEEP_MINUTES = 4 * 60;
+
 export interface DayBucket {
   date: Date;
   label: string;
@@ -54,6 +60,16 @@ export interface PottyGapStat {
   count: number;
 }
 
+/** An "overnight" gap: it runs from an evening hour into a morning hour
+ * (bedtime to wake-up), and is long enough to actually be a night's sleep
+ * rather than a quick late trip — e.g. 10pm→7am counts, but a 9pm→11:30pm
+ * or a 12am→3am gap (two trips within the same night) doesn't. Duration
+ * alone can't tell these apart from a long *daytime* gap, so both the
+ * time-of-day shape and the length matter. */
+function isOvernightGap(from: Date, to: Date, gapMinutes: number): boolean {
+  return from.getHours() >= 21 && to.getHours() < 9 && gapMinutes >= OVERNIGHT_SLEEP_MINUTES;
+}
+
 /** Average gap between consecutive occurrences of one potty type. A "both"
  * entry counts as an occurrence of *both* pee and poop — it's the same
  * event happening within moments of itself, not two separate schedules —
@@ -64,8 +80,13 @@ function averageGapForType(data: AppData, type: "pee" | "poop"): PottyGapStat {
   if (sorted.length < 2) return { avgMinutes: null, count: 0 };
   const gaps: number[] = [];
   for (let i = 1; i < sorted.length; i++) {
-    const gap = minutesBetween(new Date(sorted[i - 1].timestamp), new Date(sorted[i].timestamp));
-    if (gap >= 0 && gap < 12 * 60) gaps.push(gap); // ignore overnight gaps as outliers
+    const from = new Date(sorted[i - 1].timestamp);
+    const to = new Date(sorted[i].timestamp);
+    const gap = minutesBetween(from, to);
+    if (gap < 0) continue;
+    if (gap >= 12 * 60) continue; // outlier — likely a missed-logging stretch, not a real gap
+    if (isOvernightGap(from, to, gap)) continue; // exclude time asleep, not awake
+    gaps.push(gap);
   }
   if (gaps.length === 0) return { avgMinutes: null, count: 0 };
   const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
@@ -92,11 +113,6 @@ const NAP_BUCKETS = [
   { label: "1–2h", min: 60, max: 120 },
   { label: "2–4h", min: 120, max: 240 },
 ] as const;
-
-/** Anything this long or longer is treated as overnight sleep, not a nap —
- * without this, a whole night (often logged starting in the evening and
- * ending well into the morning) would badly skew a "nap duration" chart. */
-const OVERNIGHT_SLEEP_MINUTES = 4 * 60;
 
 export interface NapDurationStats {
   buckets: NapDurationBucket[];
