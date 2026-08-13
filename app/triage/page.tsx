@@ -15,15 +15,21 @@ import type { ImportExtraction } from "@/lib/import-text";
 import { countExtraction } from "@/lib/import-text";
 import { commitExtraction } from "@/lib/import-commit";
 import { ImportPreviewList } from "@/components/import/ImportPreviewList";
+import { buildTriageContext } from "@/lib/triage-context";
 
-// Standalone "Ask AI" module. Deliberately disconnected from the rest of the
-// app: it doesn't read or write AppData, doesn't touch Supabase, and its
-// history lives only in this browser's localStorage (see lib/triage.ts).
+// "Ask AI" module. It has read-only access to the puppy's profile and
+// everything under the Log tab (see lib/triage-context.ts for exactly what
+// that includes) — sent fresh with every message so it can answer
+// Stryder-specific questions ("when did he last eat?"). It deliberately
+// does NOT see Training or Health data, and this chat's own history lives
+// only in this browser's localStorage (see lib/triage.ts), never synced to
+// Supabase.
 //
-// The one deliberate bridge: if a message you typed reads like a log entry
-// ("8am-9am walk, peed quickly"), a button offers to import it into the
-// real shared log. That import only ever happens on explicit confirmation,
-// after a preview, and only ever adds entries — see lib/import-commit.ts.
+// The one write path back the other way: if a message you typed reads like
+// a log entry ("8am-9am walk, peed quickly"), a button offers to import it
+// into the real shared log. That import only ever happens on explicit
+// confirmation, after a preview, and only ever adds entries — see
+// lib/import-commit.ts.
 
 type ReviewState = { messageId: string; extraction: ImportExtraction; skipped: number };
 
@@ -66,6 +72,7 @@ export default function TriagePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          context: store.data ? buildTriageContext(store.data) : undefined,
         }),
       });
       const body = await res.json().catch(() => null);
@@ -153,7 +160,7 @@ export default function TriagePage() {
         <div>
           <h1 className="text-[22px] font-semibold leading-tight">AI Triage</h1>
           <p className="text-[13px] text-muted-foreground">
-            Ask anything — standalone from your puppy log. Not a vet; when in doubt, call one.
+            Can see Stryder&apos;s profile and Log — not Training or Health. Not a vet; when in doubt, call one.
           </p>
         </div>
         {messages.length > 0 && (
@@ -169,8 +176,8 @@ export default function TriagePage() {
             <Bot className="h-8 w-8 text-muted-foreground/50" />
             <p className="text-[14px] font-medium text-muted-foreground">Ask me anything</p>
             <p className="text-[12px] text-muted-foreground/80">
-              This chat is separate from Today, Log, Training, and Health — nothing here is saved to
-              your shared log unless you say so.
+              I can see Stryder&apos;s profile and everything logged under Log — not Training or
+              Health. Nothing here is saved to your shared log unless you say so.
             </p>
           </div>
         ) : (
