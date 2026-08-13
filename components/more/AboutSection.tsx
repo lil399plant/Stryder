@@ -25,8 +25,12 @@ export function AboutSection() {
               tied to an individual account — so what either caregiver logs shows up on both
               devices. There&apos;s no login: anyone with the deployment&apos;s URL can view or
               edit this log, so treat the link the way you&apos;d treat a shared document.
-              There&apos;s no third-party analytics — the only place data goes is that Supabase
-              record.
+              There&apos;s no third-party analytics — the only places data goes are that Supabase
+              record and, for anything uploaded under Health &gt; Vaccines / vet, a Supabase
+              Storage bucket. Uploaded documents are public files — anyone with a document&apos;s
+              link can view or download it, whether or not they have the app&apos;s link — so
+              don&apos;t upload anything you wouldn&apos;t want findable by a stranger who guessed
+              the URL.
             </p>
             <p>
               Two limitations worth knowing. First, syncing isn&apos;t real-time — each device

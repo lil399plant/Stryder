@@ -94,6 +94,17 @@ export function formatDateShort(dateStr: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Like formatDateShort, but for a full ISO timestamp (e.g. a document's
+ * uploadedAt) rather than a bare yyyy-mm-dd date — appending "T00:00:00" to
+ * an already-full ISO string (as formatDateShort does) produces an invalid
+ * date. */
+export function formatDateTimeShort(iso: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function ageInWeeks(birthday: string): number {
   const born = new Date(birthday + "T00:00:00");
   const diffMs = Date.now() - born.getTime();

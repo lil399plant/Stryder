@@ -14,6 +14,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export const SUPABASE_TABLE = "app_data";
 export const SUPABASE_ROW_ID = "stryder";
 
+// Health documents (vaccine certs, vet paperwork) get uploaded here as
+// actual files rather than typed-in records. The bucket is public — same
+// trust model as the rest of the app (no login; anyone with a link can
+// view it) — so a stored file's public URL works for anyone, indefinitely,
+// with no signing/expiry to manage.
+export const HEALTH_DOCS_BUCKET = "health-documents";
+export const HEALTH_DOCS_MAX_BYTES = 15 * 1024 * 1024; // 15MB
+
 let client: SupabaseClient | null | undefined;
 
 export function getSupabase(): SupabaseClient | null {
@@ -28,4 +36,34 @@ export function getSupabase(): SupabaseClient | null {
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+let bucketReady: Promise<boolean> | null = null;
+
+/** Creates the health-documents bucket the first time it's needed, so
+ * there's no manual "run this in the Supabase dashboard" setup step (unlike
+ * the app_data table, which does need a one-time SQL step — see
+ * .env.example). Idempotent and cached per server instance. */
+export function ensureHealthDocsBucket(supabase: SupabaseClient): Promise<boolean> {
+  if (bucketReady) return bucketReady;
+  bucketReady = (async () => {
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) {
+      bucketReady = null;
+      throw listError;
+    }
+    if (buckets?.some((b) => b.name === HEALTH_DOCS_BUCKET)) return true;
+
+    const { error: createError } = await supabase.storage.createBucket(HEALTH_DOCS_BUCKET, {
+      public: true,
+      fileSizeLimit: HEALTH_DOCS_MAX_BYTES,
+    });
+    // Another request may have created it in the meantime — that's fine.
+    if (createError && !/already exists/i.test(createError.message)) {
+      bucketReady = null;
+      throw createError;
+    }
+    return true;
+  })();
+  return bucketReady;
 }

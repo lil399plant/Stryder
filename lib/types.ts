@@ -233,17 +233,20 @@ export interface CueEntry {
 
 // ---------- Health ----------
 
-export type VaccineStatus = "upcoming" | "complete" | "overdue";
-
+/** A vet/vaccine document a caregiver uploaded — a photo or PDF of the
+ * actual paperwork (rabies certificate, vet invoice, etc.) rather than a
+ * structured record someone re-typed by hand. The file itself lives in
+ * Supabase Storage (public bucket, see lib/supabase.ts); only its URL and
+ * a little metadata live here. */
 export interface VaccineRecord {
   id: string;
   name: string;
-  dueDate?: string; // yyyy-mm-dd
-  completedDate?: string;
-  vet?: string;
-  notes?: string;
-  status: VaccineStatus;
-  isPlaceholder: boolean;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string; // ISO
+  caregiver: Caregiver;
 }
 
 export interface InsuranceInfo {
