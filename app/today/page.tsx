@@ -20,6 +20,7 @@ import { HandoffCard } from "@/components/today/HandoffCard";
 import { PlanBlocks } from "@/components/today/PlanBlocks";
 import { TimelineList } from "@/components/log/TimelineList";
 import { EntryEditSheet } from "@/components/log/EntryEditSheet";
+import { AddEntrySheet, type AddEntryKind, type AddEntryOverride } from "@/components/log/AddEntrySheet";
 import type { Caregiver } from "@/lib/types";
 
 function pickMealType(hour: number): "breakfast" | "lunch" | "dinner" | "treat" {
@@ -36,6 +37,8 @@ export default function TodayPage() {
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [now, setNow] = React.useState(new Date());
   const [editingItem, setEditingItem] = React.useState<TimelineItem | null>(null);
+  const [addingKind, setAddingKind] = React.useState<AddEntryKind>(null);
+  const [addingOverride, setAddingOverride] = React.useState<AddEntryOverride | undefined>(undefined);
 
   React.useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60_000);
@@ -52,59 +55,26 @@ export default function TodayPage() {
   const nudges = showingToday ? computeNudges(data, now) : [];
   const caregiverName = (id: Caregiver) => caregiverNameFor(data, id);
 
-  const onDuty = data.handoff.onDuty;
-
-  const handlePee = () => {
-    const id = store.addPotty({
-      timestamp: new Date().toISOString(),
-      type: "pee",
-      location: "usual-spot",
-      outdoorTripType: "direct-potty-trip",
-      success: "went-promptly",
-      tags: [],
-      caregiver: onDuty,
-    });
-    showToast("Pee logged", () => store.deletePotty(id));
+  // Each quick-log tap opens the full entry form (pre-filled with sensible
+  // defaults) instead of logging silently at "now" — lets you confirm or
+  // adjust the time and details before anything is actually saved.
+  const openPotty = (type: "pee" | "poop" | "accident") => {
+    setAddingKind("potty");
+    setAddingOverride(
+      type === "accident"
+        ? { type, location: "inside-pad", success: "accident" }
+        : { type, poopQuality: type === "poop" ? "normal" : undefined }
+    );
   };
 
-  const handlePoop = () => {
-    const id = store.addPotty({
-      timestamp: new Date().toISOString(),
-      type: "poop",
-      location: "usual-spot",
-      outdoorTripType: "direct-potty-trip",
-      success: "went-promptly",
-      poopQuality: "normal",
-      tags: [],
-      caregiver: onDuty,
-    });
-    showToast("Poop logged", () => store.deletePotty(id));
+  const openMeal = () => {
+    setAddingKind("meal");
+    setAddingOverride({ mealType: pickMealType(new Date().getHours()), amount: "Usual amount" });
   };
 
-  const handleMeal = () => {
-    const id = store.addMeal({
-      timestamp: new Date().toISOString(),
-      mealType: pickMealType(new Date().getHours()),
-      foodName: data.health.currentFood || "Puppy kibble",
-      amount: "Usual amount",
-      appetite: "finished",
-      addOns: [],
-      newFood: false,
-      usedForCrateTraining: false,
-      usedAsPottyReward: false,
-      caregiver: onDuty,
-    });
-    showToast("Meal logged", () => store.deleteMeal(id));
-  };
-
-  const handleNapStart = () => {
-    const id = store.startNap({
-      startTime: new Date().toISOString(),
-      location: "kitchen",
-      settling: "fell-asleep-independently",
-      caregiver: onDuty,
-    });
-    showToast("Nap started", () => store.deleteNap(id));
+  const openNapStart = () => {
+    setAddingKind("nap");
+    setAddingOverride(undefined);
   };
 
   const handleNapEnd = () => {
@@ -113,13 +83,9 @@ export default function TodayPage() {
     showToast("Nap ended", () => store.updateNap(activeNap.id, { endTime: undefined }));
   };
 
-  const handleDownstairsStart = () => {
-    const id = store.startDownstairs({
-      startTime: new Date().toISOString(),
-      outdoorTripType: "walk-first",
-      caregiver: onDuty,
-    });
-    showToast("Downstairs trip started", () => store.deleteDownstairsTrip(id));
+  const openDownstairsStart = () => {
+    setAddingKind("downstairs");
+    setAddingOverride(undefined);
   };
 
   const handleDownstairsEnd = () => {
@@ -128,31 +94,15 @@ export default function TodayPage() {
     showToast("Downstairs trip ended", () => store.updateDownstairsTrip(activeDownstairs.id, { endTime: undefined }));
   };
 
-  const handleEventStart = () => {
-    const id = store.startEvent({
-      startTime: new Date().toISOString(),
-      category: "other",
-      caregiver: onDuty,
-    });
-    showToast("Event started", () => store.deleteEvent(id));
+  const openEventStart = () => {
+    setAddingKind("event");
+    setAddingOverride(undefined);
   };
 
   const handleEventEnd = () => {
     if (!activeEvent) return;
     store.endEvent(activeEvent.id);
     showToast("Event ended", () => store.updateEvent(activeEvent.id, { endTime: undefined }));
-  };
-
-  const handleAccident = () => {
-    const id = store.addPotty({
-      timestamp: new Date().toISOString(),
-      type: "accident",
-      location: "inside-pad",
-      success: "accident",
-      tags: [],
-      caregiver: onDuty,
-    });
-    showToast("Accident logged", () => store.deletePotty(id));
   };
 
   return (
@@ -168,16 +118,16 @@ export default function TodayPage() {
         <>
           <StatusStrip data={data} now={now} />
           <QuickLogButtons
-            onPee={handlePee}
-            onPoop={handlePoop}
-            onMeal={handleMeal}
-            onNapStart={handleNapStart}
+            onPee={() => openPotty("pee")}
+            onPoop={() => openPotty("poop")}
+            onMeal={openMeal}
+            onNapStart={openNapStart}
             onNapEnd={handleNapEnd}
-            onDownstairsStart={handleDownstairsStart}
+            onDownstairsStart={openDownstairsStart}
             onDownstairsEnd={handleDownstairsEnd}
-            onEventStart={handleEventStart}
+            onEventStart={openEventStart}
             onEventEnd={handleEventEnd}
-            onAccident={handleAccident}
+            onAccident={() => openPotty("accident")}
             activeNap={activeNap}
             activeDownstairs={activeDownstairs}
             activeEvent={activeEvent}
@@ -213,6 +163,11 @@ export default function TodayPage() {
       )}
 
       <EntryEditSheet item={editingItem} onClose={() => setEditingItem(null)} />
+      <AddEntrySheet
+        kind={addingKind}
+        onClose={() => setAddingKind(null)}
+        initialOverride={addingOverride}
+      />
     </div>
   );
 }

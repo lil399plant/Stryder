@@ -13,12 +13,29 @@ import { IncidentForm, type IncidentFormValues } from "./IncidentForm";
 
 export type AddEntryKind = "potty" | "meal" | "nap" | "downstairs" | "event" | "incident" | null;
 
+/** Lets a caller (e.g. Today's quick-log buttons) seed the form with
+ * something other than this sheet's own defaults — e.g. pre-selecting
+ * "poop" as the potty type, or today's time-appropriate meal type —
+ * without needing a whole separate form-opening path of its own. A union
+ * (not an intersection) because field names collide with incompatible
+ * types across forms — e.g. "location" means a potty spot in one and a
+ * nap spot in another — so the caller's object is only ever shaped like
+ * whichever one form matches the `kind` it's paired with. */
+export type AddEntryOverride =
+  | Partial<BathroomFormValues>
+  | Partial<MealFormValues>
+  | Partial<NapFormValues>
+  | Partial<DownstairsFormValues>
+  | Partial<EventFormValues>
+  | Partial<IncidentFormValues>;
+
 interface AddEntrySheetProps {
   kind: AddEntryKind;
   onClose: () => void;
+  initialOverride?: AddEntryOverride;
 }
 
-export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
+export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetProps) {
   const store = useStore();
   const { showToast } = useToast();
   const data = store.data;
@@ -41,6 +58,7 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               success: "went-promptly",
               tags: [],
               caregiver: onDuty,
+              ...(initialOverride as Partial<BathroomFormValues>),
             }}
             caregivers={caregivers}
             submitLabel="Log entry"
@@ -67,6 +85,7 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               usedForCrateTraining: false,
               usedAsPottyReward: false,
               caregiver: onDuty,
+              ...(initialOverride as Partial<MealFormValues>),
             }}
             caregivers={caregivers}
             submitLabel="Log meal"
@@ -88,6 +107,7 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               location: "kitchen",
               settling: "fell-asleep-independently",
               caregiver: onDuty,
+              ...(initialOverride as Partial<NapFormValues>),
             }}
             caregivers={caregivers}
             submitLabel="Log nap"
@@ -109,6 +129,7 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               outdoorTripType: "walk-first",
               notes: "",
               caregiver: onDuty,
+              ...(initialOverride as Partial<DownstairsFormValues>),
             }}
             caregivers={caregivers}
             submitLabel="Log trip"
@@ -131,6 +152,7 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               title: "",
               notes: "",
               caregiver: onDuty,
+              ...(initialOverride as Partial<EventFormValues>),
             }}
             caregivers={caregivers}
             submitLabel="Log event"
@@ -153,6 +175,7 @@ export function AddEntrySheet({ kind, onClose }: AddEntrySheetProps) {
               note: "",
               discussWithVet: false,
               caregiver: onDuty,
+              ...(initialOverride as Partial<IncidentFormValues>),
             }}
             caregivers={caregivers}
             submitLabel="Save note"
