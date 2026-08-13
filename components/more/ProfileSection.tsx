@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { PawPrint } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -30,12 +31,10 @@ export function ProfileSection() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-0">
         <div className="flex items-center gap-3">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-tan-soft text-tan-soft-foreground">
-            <PawPrint className="h-7 w-7" />
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-tan-soft">
+            <Image src="/profile-photo.png" alt="Stryder" fill className="object-cover" sizes="64px" />
           </div>
-          <p className="text-[12px] text-muted-foreground">
-            Photo support is coming — this is a placeholder for now.
-          </p>
+          <p className="text-[12px] text-muted-foreground">Floppy ears, on full display.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
