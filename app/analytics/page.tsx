@@ -4,12 +4,11 @@ import { EyeOff } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
-  bathroomTimingByDay,
-  averageGapBetweenPottyEvents,
-  napDurationByLocation,
-  appetiteBreakdown,
-  accidentTagFrequency,
-  accidentCount,
+  bathroomTimingPoints,
+  averageGapBetweenPee,
+  averageGapBetweenPoop,
+  napDurationHistogram,
+  daysSinceLastAccident,
   trainingSessionsPerDay,
   correlationCards,
 } from "@/lib/analytics";
@@ -17,8 +16,7 @@ import { BathroomTimingCard } from "@/components/analytics/BathroomTimingCard";
 import {
   PottyGapCard,
   NapCard,
-  AppetiteCard,
-  AccidentsCard,
+  DaysWithoutAccidentCard,
   TrainingOverTimeCard,
   CorrelationCards,
 } from "@/components/analytics/OtherCards";
@@ -53,11 +51,10 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      <BathroomTimingCard rows={bathroomTimingByDay(data, 7, now)} />
-      <PottyGapCard {...averageGapBetweenPottyEvents(data)} />
-      <NapCard stats={napDurationByLocation(data)} />
-      <AppetiteCard stats={appetiteBreakdown(data)} />
-      <AccidentsCard total={accidentCount(data)} tags={accidentTagFrequency(data)} />
+      <BathroomTimingCard points={bathroomTimingPoints(data)} />
+      <PottyGapCard pee={averageGapBetweenPee(data)} poop={averageGapBetweenPoop(data)} />
+      <NapCard stats={napDurationHistogram(data)} />
+      <DaysWithoutAccidentCard days={daysSinceLastAccident(data, now)} />
       <TrainingOverTimeCard data={trainingSessionsPerDay(data, 14, now)} />
       <CorrelationCards cards={correlationCards(data)} />
     </div>

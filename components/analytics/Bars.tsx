@@ -30,9 +30,14 @@ export function HBar({
 export function VBarChart({
   data,
   colorClass = "bg-forest",
+  fullLabel = false,
 }: {
   data: { label: string; value: number }[];
   colorClass?: string;
+  /** Show each bar's full label instead of just its first character — for
+   * bucket-style labels (e.g. "15–30m") rather than single-letter day
+   * abbreviations. */
+  fullLabel?: boolean;
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (
@@ -46,7 +51,9 @@ export function VBarChart({
               title={`${d.label}: ${d.value}`}
             />
           </div>
-          <span className="text-[9.5px] text-muted-foreground">{d.label[0]}</span>
+          <span className="whitespace-nowrap text-[9.5px] text-muted-foreground">
+            {fullLabel ? d.label : d.label[0]}
+          </span>
         </div>
       ))}
     </div>

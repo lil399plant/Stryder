@@ -1,122 +1,86 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { HBar, VBarChart } from "./Bars";
+import { VBarChart } from "./Bars";
 import { formatDuration } from "@/lib/time";
-import type {
-  NapLocationStat,
-  AppetiteStat,
-  TagStat,
-  DayCount,
-  CorrelationCard,
-} from "@/lib/analytics";
-import { NAP_LOCATION_LABEL } from "@/lib/timeline";
-import { Lightbulb } from "lucide-react";
+import type { PottyGapStat, NapDurationStats, DayCount, CorrelationCard } from "@/lib/analytics";
+import { Lightbulb, ShieldCheck } from "lucide-react";
 
-export function PottyGapCard({ avgMinutes, count }: { avgMinutes: number | null; count: number }) {
+export function PottyGapCard({ pee, poop }: { pee: PottyGapStat; poop: PottyGapStat }) {
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle>Time between potty trips</CardTitle>
-        <CardDescription>Average gap between consecutive logged trips.</CardDescription>
+        <CardDescription>
+          Average gap between consecutive trips of each type — a &ldquo;pee &amp; poop&rdquo; entry counts
+          toward both.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid grid-cols-2 gap-4 pt-0">
+        <GapStat emoji="🍋" label="Between pees" stat={pee} />
+        <GapStat emoji="💩" label="Between poops" stat={poop} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function GapStat({ emoji, label, stat }: { emoji: string; label: string; stat: PottyGapStat }) {
+  return (
+    <div>
+      <p className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+        <span className="text-[13px] leading-none">{emoji}</span>
+        {label}
+      </p>
+      {stat.avgMinutes === null ? (
+        <p className="mt-1.5 text-[12.5px] text-muted-foreground">Not enough data yet.</p>
+      ) : (
+        <>
+          <p className="mt-1 text-[22px] font-semibold leading-none">{formatDuration(stat.avgMinutes)}</p>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">{stat.count} gaps</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function NapCard({ stats }: { stats: NapDurationStats }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle>Nap duration</CardTitle>
+        <CardDescription>
+          {stats.count > 0 && stats.avgMinutes !== null
+            ? `${stats.count} naps, avg ${formatDuration(stats.avgMinutes)} — `
+            : ""}
+          overnight sleep (4h+) isn&apos;t counted as a nap here.
+        </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
-        {avgMinutes === null ? (
-          <p className="py-4 text-center text-[13px] text-muted-foreground">Not enough data logged yet.</p>
-        ) : (
-          <div>
-            <p className="text-[26px] font-semibold leading-none">{formatDuration(avgMinutes)}</p>
-            <p className="mt-1.5 text-[12px] text-muted-foreground">
-              Based on {count} gaps between trips — a general pattern, not a rule to hit.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-export function NapCard({ stats }: { stats: NapLocationStat[] }) {
-  const total = stats.reduce((sum, s) => sum + s.count, 0);
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Nap duration &amp; location</CardTitle>
-        <CardDescription>Average length of completed naps by spot.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-0">
-        {stats.length === 0 ? (
+        {stats.count === 0 ? (
           <p className="py-4 text-center text-[13px] text-muted-foreground">No completed naps logged yet.</p>
         ) : (
-          stats.map((s) => (
-            <HBar
-              key={s.location}
-              label={NAP_LOCATION_LABEL[s.location]}
-              value={`${s.avgMinutes ? formatDuration(s.avgMinutes) : "—"} avg · ${s.count}×`}
-              fraction={total ? s.count / total : 0}
-              colorClass="bg-forest"
-            />
-          ))
+          <VBarChart data={stats.buckets.map((b) => ({ label: b.label, value: b.count }))} colorClass="bg-forest" fullLabel />
         )}
       </CardContent>
     </Card>
   );
 }
 
-const APPETITE_COLOR: Record<string, string> = {
-  finished: "bg-forest",
-  most: "bg-blue",
-  some: "bg-tan",
-  refused: "bg-concern",
-};
-
-export function AppetiteCard({ stats }: { stats: AppetiteStat[] }) {
-  const total = stats.reduce((sum, s) => sum + s.count, 0);
+export function DaysWithoutAccidentCard({ days }: { days: number | null }) {
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Meal &amp; appetite history</CardTitle>
-        <CardDescription>How meals have gone, across all logged meals.</CardDescription>
+      <CardHeader className="flex-row items-center gap-2 pb-2">
+        <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+        <CardTitle>Days without accident</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-0">
-        {total === 0 ? (
-          <p className="py-4 text-center text-[13px] text-muted-foreground">No meals logged yet.</p>
+      <CardContent className="pt-0">
+        {days === null ? (
+          <p className="py-4 text-center text-[13px] text-muted-foreground">No accidents logged yet.</p>
         ) : (
-          stats.map((s) => (
-            <HBar
-              key={s.appetite}
-              label={s.appetite}
-              value={`${s.count}`}
-              fraction={total ? s.count / total : 0}
-              colorClass={APPETITE_COLOR[s.appetite]}
-            />
-          ))
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-export function AccidentsCard({ total, tags }: { total: number; tags: TagStat[] }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Accidents &amp; associated tags</CardTitle>
-        <CardDescription>Normal for a young puppy — shown here for pattern awareness only.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 pt-0">
-        <p className="text-[26px] font-semibold leading-none">{total}</p>
-        <p className="-mt-2 text-[12px] text-muted-foreground">total logged</p>
-        {tags.length > 0 && (
-          <div className="flex flex-col gap-2.5">
-            {tags.slice(0, 5).map((t) => (
-              <HBar
-                key={t.tag}
-                label={t.tag.replace(/-/g, " ")}
-                value={`${t.count}`}
-                fraction={total ? t.count / total : 0}
-                colorClass="bg-tan"
-              />
-            ))}
-          </div>
+          <>
+            <p className="text-[26px] font-semibold leading-none">{days}</p>
+            <p className="mt-1.5 text-[12px] text-muted-foreground">
+              Full calendar days since the last logged accident.
+            </p>
+          </>
         )}
       </CardContent>
     </Card>

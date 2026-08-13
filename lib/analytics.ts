@@ -3,7 +3,7 @@
 // predictions, no medical inference. Callers are responsible for phrasing
 // results cautiously (see components/analytics).
 
-import type { AppData, NapLocation, PottyTag } from "./types";
+import type { AppData, PottyTag } from "./types";
 import { addDays, startOfDay, minutesBetween, isSameDay } from "./time";
 
 export interface DayBucket {
@@ -23,25 +23,44 @@ export function lastNDays(n: number, now: Date = new Date()): DayBucket[] {
   return days;
 }
 
-export interface BathroomDayRow {
-  day: DayBucket;
-  points: { hour: number; type: string }[];
+/** One point per logged pee/poop/accident, positioned by time-of-day only
+ * (0–24, fractional) — no date axis, since this is a single distribution
+ * across all logged history, not a per-day breakdown. A "both" potty entry
+ * becomes two points (one pee, one poop) at the same hour, since it really
+ * is two events that happened together. */
+export interface BathroomPoint {
+  hour: number;
+  type: "pee" | "poop" | "accident";
 }
 
-export function bathroomTimingByDay(data: AppData, days = 7, now = new Date()): BathroomDayRow[] {
-  const buckets = lastNDays(days, now);
-  return buckets.map((day) => ({
-    day,
-    points: data.pottyEvents
-      .filter((p) => isSameDay(new Date(p.timestamp), day.date))
-      .map((p) => ({ hour: new Date(p.timestamp).getHours() + new Date(p.timestamp).getMinutes() / 60, type: p.type })),
-  }));
+export function bathroomTimingPoints(data: AppData): BathroomPoint[] {
+  const points: BathroomPoint[] = [];
+  for (const p of data.pottyEvents) {
+    const hour = new Date(p.timestamp).getHours() + new Date(p.timestamp).getMinutes() / 60;
+    if (p.type === "pee") points.push({ hour, type: "pee" });
+    else if (p.type === "poop") points.push({ hour, type: "poop" });
+    else if (p.type === "both") {
+      points.push({ hour, type: "pee" });
+      points.push({ hour, type: "poop" });
+    } else if (p.type === "accident") {
+      points.push({ hour, type: "accident" });
+    }
+  }
+  return points;
 }
 
-export function averageGapBetweenPottyEvents(data: AppData): { avgMinutes: number | null; count: number } {
-  const sorted = [...data.pottyEvents]
-    .filter((p) => p.type !== "accident")
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+export interface PottyGapStat {
+  avgMinutes: number | null;
+  count: number;
+}
+
+/** Average gap between consecutive occurrences of one potty type. A "both"
+ * entry counts as an occurrence of *both* pee and poop — it's the same
+ * event happening within moments of itself, not two separate schedules —
+ * so it's included in each type's own sequence rather than only "both". */
+function averageGapForType(data: AppData, type: "pee" | "poop"): PottyGapStat {
+  const matches = data.pottyEvents.filter((p) => p.type === type || p.type === "both");
+  const sorted = [...matches].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   if (sorted.length < 2) return { avgMinutes: null, count: 0 };
   const gaps: number[] = [];
   for (let i = 1; i < sorted.length; i++) {
@@ -53,40 +72,54 @@ export function averageGapBetweenPottyEvents(data: AppData): { avgMinutes: numbe
   return { avgMinutes: Math.round(avg), count: gaps.length };
 }
 
-export interface NapLocationStat {
-  location: NapLocation;
+export function averageGapBetweenPee(data: AppData): PottyGapStat {
+  return averageGapForType(data, "pee");
+}
+
+export function averageGapBetweenPoop(data: AppData): PottyGapStat {
+  return averageGapForType(data, "poop");
+}
+
+export interface NapDurationBucket {
+  label: string;
+  count: number;
+}
+
+const NAP_BUCKETS = [
+  { label: "<15m", min: 0, max: 15 },
+  { label: "15–30m", min: 15, max: 30 },
+  { label: "30–60m", min: 30, max: 60 },
+  { label: "1–2h", min: 60, max: 120 },
+  { label: "2–4h", min: 120, max: 240 },
+] as const;
+
+/** Anything this long or longer is treated as overnight sleep, not a nap —
+ * without this, a whole night (often logged starting in the evening and
+ * ending well into the morning) would badly skew a "nap duration" chart. */
+const OVERNIGHT_SLEEP_MINUTES = 4 * 60;
+
+export interface NapDurationStats {
+  buckets: NapDurationBucket[];
   count: number;
   avgMinutes: number | null;
 }
 
-export function napDurationByLocation(data: AppData): NapLocationStat[] {
-  const byLoc = new Map<NapLocation, number[]>();
+export function napDurationHistogram(data: AppData): NapDurationStats {
+  const durations: number[] = [];
   for (const n of data.napEvents) {
-    if (!n.endTime || !n.location) continue;
+    if (!n.endTime) continue;
     const mins = minutesBetween(new Date(n.startTime), new Date(n.endTime));
-    if (mins <= 0) continue;
-    const arr = byLoc.get(n.location) ?? [];
-    arr.push(mins);
-    byLoc.set(n.location, arr);
+    if (mins <= 0 || mins >= OVERNIGHT_SLEEP_MINUTES) continue;
+    durations.push(mins);
   }
-  return Array.from(byLoc.entries())
-    .map(([location, mins]) => ({
-      location,
-      count: mins.length,
-      avgMinutes: mins.length ? Math.round(mins.reduce((a, b) => a + b, 0) / mins.length) : null,
-    }))
-    .sort((a, b) => b.count - a.count);
-}
-
-export interface AppetiteStat {
-  appetite: string;
-  count: number;
-}
-
-export function appetiteBreakdown(data: AppData): AppetiteStat[] {
-  const counts: Record<string, number> = { finished: 0, most: 0, some: 0, refused: 0 };
-  for (const m of data.mealEvents) counts[m.appetite] = (counts[m.appetite] ?? 0) + 1;
-  return Object.entries(counts).map(([appetite, count]) => ({ appetite, count }));
+  const counts = NAP_BUCKETS.map(
+    (b) => durations.filter((m) => m >= b.min && m < b.max).length
+  );
+  return {
+    buckets: NAP_BUCKETS.map((b, i) => ({ label: b.label, count: counts[i] })),
+    count: durations.length,
+    avgMinutes: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null,
+  };
 }
 
 export interface TagStat {
@@ -105,8 +138,21 @@ export function accidentTagFrequency(data: AppData): TagStat[] {
     .sort((a, b) => b.count - a.count);
 }
 
-export function accidentCount(data: AppData): number {
-  return data.pottyEvents.filter((p) => p.type === "accident").length;
+/** Full calendar days since the most recent accident — today doesn't count
+ * until it's actually over, so an accident logged yesterday reads as 0
+ * days (today isn't finished yet), and one from two days ago reads as 1
+ * (yesterday was the one full clean day so far). Null when no accident has
+ * ever been logged, rather than showing a possibly-huge/meaningless count. */
+export function daysSinceLastAccident(data: AppData, now: Date = new Date()): number | null {
+  const accidents = data.pottyEvents.filter((p) => p.type === "accident");
+  if (accidents.length === 0) return null;
+  const last = accidents.reduce((latest, p) =>
+    new Date(p.timestamp).getTime() > new Date(latest.timestamp).getTime() ? p : latest
+  );
+  const lastDay = startOfDay(new Date(last.timestamp));
+  const today = startOfDay(now);
+  const rawDays = Math.round((today.getTime() - lastDay.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, rawDays - 1);
 }
 
 export interface DayCount {
