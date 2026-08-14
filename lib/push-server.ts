@@ -5,10 +5,11 @@ import type { Caregiver } from "./types";
 import { getSupabase, PUSH_SUBSCRIPTIONS_TABLE } from "./supabase";
 
 // Sends real push notifications (iOS/Android home-screen installs) to
-// caregivers' subscribed devices. Two callers: app/api/push/notify (instant,
-// "something notable just happened") and app/api/push/cron-nudges
-// (periodic, "probably due" — see that route for how it's triggered, since
-// Vercel's own Cron only runs once/day on the free plan).
+// caregivers' subscribed devices. Sole caller: app/api/push/cron-nudges —
+// both the rule-based "probably due" nudges (sent to whoever's on duty)
+// and upcoming-event reminders (sent to everyone) go through here. See
+// that route for how it's triggered, since Vercel's own Cron only runs
+// once/day on the free plan.
 
 export interface PushPayload {
   title: string;

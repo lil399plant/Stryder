@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Droplets, UtensilsCrossed, Moon, Footprints, Sparkles, StickyNote } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Droplets,
+  UtensilsCrossed,
+  Moon,
+  Footprints,
+  Sparkles,
+  StickyNote,
+  CalendarClock,
+} from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -14,7 +24,8 @@ import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
 import { EntryEditSheet } from "@/components/log/EntryEditSheet";
-import { AddEntrySheet, type AddEntryKind } from "@/components/log/AddEntrySheet";
+import { AddEntrySheet, type AddEntryKind, type AddEntryOverride } from "@/components/log/AddEntrySheet";
+import type { EventFormValues } from "@/components/log/EventForm";
 import { KIND_STYLES } from "@/components/log/timelineVisual";
 
 const VIEW_TABS = [
@@ -49,7 +60,28 @@ export default function LogPage() {
   const [anchorDate, setAnchorDate] = React.useState(new Date());
   const [editingItem, setEditingItem] = React.useState<TimelineItem | null>(null);
   const [addingKind, setAddingKind] = React.useState<AddEntryKind>(null);
+  const [addingOverride, setAddingOverride] = React.useState<AddEntryOverride | undefined>(undefined);
+  const [eventMode, setEventMode] = React.useState<"log" | "schedule">("log");
   const [now] = React.useState(new Date());
+
+  const closeAddSheet = () => {
+    setAddingKind(null);
+    setAddingOverride(undefined);
+    setEventMode("log");
+  };
+
+  const openScheduleEvent = () => {
+    // Default to 2 hours from now, rounded up to the next 15 minutes — a
+    // clearly-future starting point the caregiver adjusts from, rather than
+    // leaving it at "now" (this is for planning ahead, not logging as it
+    // happens). See app/api/push/cron-nudges/route.ts for the reminder
+    // itself — any event with a future startTime gets one automatically.
+    const start = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    start.setMinutes(Math.ceil(start.getMinutes() / 15) * 15, 0, 0);
+    setAddingOverride({ startTime: start.toISOString() } satisfies Partial<EventFormValues>);
+    setEventMode("schedule");
+    setAddingKind("event");
+  };
 
   if (!data) return null;
 
@@ -92,12 +124,22 @@ export default function LogPage() {
         {ADD_BUTTONS.map(({ kind, label, icon: Icon }) => (
           <button
             key={kind}
-            onClick={() => setAddingKind(kind)}
+            onClick={() => {
+              setAddingOverride(undefined);
+              setEventMode("log");
+              setAddingKind(kind);
+            }}
             className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface-raised px-3 py-1.5 text-[12.5px] font-medium hover:bg-tan-soft/30"
           >
             <Icon className="h-3.5 w-3.5" />+ {label}
           </button>
         ))}
+        <button
+          onClick={openScheduleEvent}
+          className="flex items-center gap-1.5 rounded-full border border-border-strong bg-surface-raised px-3 py-1.5 text-[12.5px] font-medium hover:bg-tan-soft/30"
+        >
+          <CalendarClock className="h-3.5 w-3.5" />+ Schedule event
+        </button>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -161,7 +203,12 @@ export default function LogPage() {
       </p>
 
       <EntryEditSheet item={editingItem} onClose={() => setEditingItem(null)} />
-      <AddEntrySheet kind={addingKind} onClose={() => setAddingKind(null)} />
+      <AddEntrySheet
+        kind={addingKind}
+        onClose={closeAddSheet}
+        initialOverride={addingOverride}
+        eventMode={eventMode}
+      />
     </div>
   );
 }

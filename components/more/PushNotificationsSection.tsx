@@ -84,9 +84,9 @@ export function PushNotificationsSection() {
       </CardHeader>
       <CardContent className="flex flex-col gap-3.5 pt-0">
         <p className="text-[12.5px] leading-snug text-muted-foreground">
-          Get notified on this device when an accident is logged, the handoff note changes, a new
-          event is added, or something looks like it&apos;s probably due. Per-device — enable it
-          separately on each phone or laptop you want to hear from.
+          Get notified on this device when something looks probably due (only while you&apos;re on
+          duty), or 2 hours before a scheduled event starts (both caregivers, regardless of duty).
+          Per-device — enable it separately on each phone or laptop you want to hear from.
         </p>
 
         {support === "unsupported" ? (

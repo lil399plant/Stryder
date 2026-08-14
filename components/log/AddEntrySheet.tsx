@@ -4,10 +4,6 @@ import { Sheet } from "@/components/ui/sheet";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import type { Caregiver } from "@/lib/types";
-import { useDeviceCaregiver } from "@/lib/device-identity";
-import { notifyOtherCaregiver } from "@/lib/push-notify";
-import { caregiverName as caregiverNameFor } from "@/lib/rules";
-import { SPECIAL_EVENT_CATEGORY_LABEL } from "@/lib/timeline";
 import { BathroomForm, type BathroomFormValues } from "./BathroomForm";
 import { MealForm, type MealFormValues } from "./MealForm";
 import { NapForm, type NapFormValues } from "./NapForm";
@@ -37,19 +33,24 @@ interface AddEntrySheetProps {
   kind: AddEntryKind;
   onClose: () => void;
   initialOverride?: AddEntryOverride;
+  /** "event" kind only — swaps the sheet's copy for the "Schedule event"
+   * entry point (see app/log/page.tsx). Same underlying SpecialEvent either
+   * way; a future-dated one gets a 2h-before reminder pushed to both
+   * caregivers regardless of which button was used to create it (see
+   * app/api/push/cron-nudges/route.ts) — this is purely about which words
+   * the sheet shows. */
+  eventMode?: "log" | "schedule";
 }
 
-export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetProps) {
+export function AddEntrySheet({ kind, onClose, initialOverride, eventMode = "log" }: AddEntrySheetProps) {
   const store = useStore();
   const { showToast } = useToast();
-  const deviceCaregiver = useDeviceCaregiver();
   const data = store.data;
   if (!kind || !data) return null;
 
   const caregivers = data.caregivers;
   const onDuty: Caregiver = data.handoff.onDuty;
   const nowIso = new Date().toISOString();
-  const who = deviceCaregiver ? caregiverNameFor(data, deviceCaregiver) : null;
 
   return (
     <>
@@ -71,14 +72,6 @@ export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetP
             onSubmit={(values: BathroomFormValues) => {
               store.addPotty(values);
               showToast("Bathroom entry logged");
-              if (values.type === "accident") {
-                notifyOtherCaregiver(
-                  deviceCaregiver,
-                  "Accident logged",
-                  who ? `${who} logged an accident.` : "An accident was just logged.",
-                  "/today"
-                );
-              }
               onClose();
             }}
             onCancel={onClose}
@@ -157,7 +150,16 @@ export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetP
         </Sheet>
       )}
       {kind === "event" && (
-        <Sheet open onOpenChange={(o) => !o && onClose()} title="Log an event">
+        <Sheet
+          open
+          onOpenChange={(o) => !o && onClose()}
+          title={eventMode === "schedule" ? "Schedule an event" : "Log an event"}
+          description={
+            eventMode === "schedule"
+              ? "Both caregivers get a push notification 2 hours before it starts."
+              : undefined
+          }
+        >
           <EventForm
             initial={{
               startTime: nowIso,
@@ -169,19 +171,10 @@ export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetP
               ...(initialOverride as Partial<EventFormValues>),
             }}
             caregivers={caregivers}
-            submitLabel="Log event"
+            submitLabel={eventMode === "schedule" ? "Schedule event" : "Log event"}
             onSubmit={(values: EventFormValues) => {
               store.addEvent(values);
-              showToast("Event logged");
-              const category = SPECIAL_EVENT_CATEGORY_LABEL[values.category];
-              notifyOtherCaregiver(
-                deviceCaregiver,
-                "New event logged",
-                who
-                  ? `${who} added ${values.title ? `"${values.title}" — ` : ""}${category}.`
-                  : `${category} was just logged.`,
-                "/log"
-              );
+              showToast(eventMode === "schedule" ? "Event scheduled" : "Event logged");
               onClose();
             }}
             onCancel={onClose}
