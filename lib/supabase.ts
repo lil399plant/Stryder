@@ -14,6 +14,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export const SUPABASE_TABLE = "app_data";
 export const SUPABASE_ROW_ID = "stryder";
 
+// Push notification plumbing — see .env.example for the one-time SQL to
+// create these two tables. Deliberately NOT part of the app_data JSON blob:
+// subscriptions and notification dedup state are per-device infrastructure,
+// not data a caregiver logged, and keeping them separate avoids any risk of
+// the whole-record-overwrite behavior (see AboutSection) losing them.
+export const PUSH_SUBSCRIPTIONS_TABLE = "push_subscriptions";
+export const NOTIFIED_NUDGES_TABLE = "notified_nudges";
+
 // Health documents (vaccine certs, vet paperwork) get uploaded here as
 // actual files rather than typed-in records. The bucket is public — same
 // trust model as the rest of the app (no login; anyone with a link can

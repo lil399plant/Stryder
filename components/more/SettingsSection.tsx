@@ -50,8 +50,8 @@ export function SettingsSection() {
           <div className="pr-3">
             <p className="text-[14px] font-medium">Reminder preferences</p>
             <p className="text-[11.5px] text-muted-foreground">
-              Stryder doesn&apos;t send push notifications. This just controls whether
-              per-plan reminder toggles are shown as on or off by default.
+              Controls whether per-plan reminder toggles are shown as on or off by default.
+              For actual push notifications, see below.
             </p>
           </div>
           <Switch

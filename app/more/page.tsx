@@ -4,6 +4,7 @@ import { ProfileSection } from "@/components/more/ProfileSection";
 import { CaregiversSection } from "@/components/more/CaregiversSection";
 import { DataSection } from "@/components/more/DataSection";
 import { SettingsSection } from "@/components/more/SettingsSection";
+import { PushNotificationsSection } from "@/components/more/PushNotificationsSection";
 import { NudgeRulesSection } from "@/components/more/NudgeRulesSection";
 import { AboutSection } from "@/components/more/AboutSection";
 
@@ -44,6 +45,7 @@ export default function MorePage() {
 
       <DataSection />
       <SettingsSection />
+      <PushNotificationsSection />
       <NudgeRulesSection />
       <AboutSection />
     </div>

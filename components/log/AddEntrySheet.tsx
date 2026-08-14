@@ -4,6 +4,10 @@ import { Sheet } from "@/components/ui/sheet";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import type { Caregiver } from "@/lib/types";
+import { useDeviceCaregiver } from "@/lib/device-identity";
+import { notifyOtherCaregiver } from "@/lib/push-notify";
+import { caregiverName as caregiverNameFor } from "@/lib/rules";
+import { SPECIAL_EVENT_CATEGORY_LABEL } from "@/lib/timeline";
 import { BathroomForm, type BathroomFormValues } from "./BathroomForm";
 import { MealForm, type MealFormValues } from "./MealForm";
 import { NapForm, type NapFormValues } from "./NapForm";
@@ -38,12 +42,14 @@ interface AddEntrySheetProps {
 export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetProps) {
   const store = useStore();
   const { showToast } = useToast();
+  const deviceCaregiver = useDeviceCaregiver();
   const data = store.data;
   if (!kind || !data) return null;
 
   const caregivers = data.caregivers;
   const onDuty: Caregiver = data.handoff.onDuty;
   const nowIso = new Date().toISOString();
+  const who = deviceCaregiver ? caregiverNameFor(data, deviceCaregiver) : null;
 
   return (
     <>
@@ -65,6 +71,14 @@ export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetP
             onSubmit={(values: BathroomFormValues) => {
               store.addPotty(values);
               showToast("Bathroom entry logged");
+              if (values.type === "accident") {
+                notifyOtherCaregiver(
+                  deviceCaregiver,
+                  "Accident logged",
+                  who ? `${who} logged an accident.` : "An accident was just logged.",
+                  "/today"
+                );
+              }
               onClose();
             }}
             onCancel={onClose}
@@ -159,6 +173,15 @@ export function AddEntrySheet({ kind, onClose, initialOverride }: AddEntrySheetP
             onSubmit={(values: EventFormValues) => {
               store.addEvent(values);
               showToast("Event logged");
+              const category = SPECIAL_EVENT_CATEGORY_LABEL[values.category];
+              notifyOtherCaregiver(
+                deviceCaregiver,
+                "New event logged",
+                who
+                  ? `${who} added ${values.title ? `"${values.title}" — ` : ""}${category}.`
+                  : `${category} was just logged.`,
+                "/log"
+              );
               onClose();
             }}
             onCancel={onClose}

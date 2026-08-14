@@ -10,12 +10,15 @@ import { useStore } from "@/lib/store";
 import { useSyncedState } from "@/lib/useSyncedState";
 import type { AppData } from "@/lib/types";
 import { formatClock } from "@/lib/time";
-import { lastPottyOfType, lastMeal, getActiveNap, lastCompletedNap } from "@/lib/rules";
+import { lastPottyOfType, lastMeal, getActiveNap, lastCompletedNap, caregiverName as caregiverNameFor } from "@/lib/rules";
 import { POTTY_TYPE_LABEL, SEVERITY_LABEL } from "@/lib/timeline";
+import { useDeviceCaregiver } from "@/lib/device-identity";
+import { notifyOtherCaregiver } from "@/lib/push-notify";
 
 export function HandoffCard({ data }: { data: AppData }) {
   const { setHandoff } = useStore();
   const [note, setNote] = useSyncedState(data.handoff.note);
+  const deviceCaregiver = useDeviceCaregiver();
 
   const lastPotty = lastPottyOfType(data, ["pee", "poop"]);
   const meal = lastMeal(data);
@@ -49,7 +52,18 @@ export function HandoffCard({ data }: { data: AppData }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onBlur={() => {
-              if (note !== data.handoff.note) setHandoff({ note });
+              if (note !== data.handoff.note) {
+                setHandoff({ note });
+                if (note.trim()) {
+                  const who = deviceCaregiver ? caregiverNameFor(data, deviceCaregiver) : null;
+                  notifyOtherCaregiver(
+                    deviceCaregiver,
+                    "Handoff note updated",
+                    who ? `${who}: ${note.trim()}` : note.trim(),
+                    "/today"
+                  );
+                }
+              }
             }}
             rows={2}
             placeholder="Anything the next caregiver should know…"
