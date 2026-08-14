@@ -23,6 +23,7 @@ import type {
 import { buildStarterData } from "./seed";
 import { makeId } from "./id";
 import { DEFAULT_NUDGE_THRESHOLDS } from "./rules";
+import { mergeAppData } from "./merge-app-data";
 
 // A small external-store singleton (see useSyncExternalStore below) rather
 // than React Context + useState. Reading from localStorage must happen
@@ -36,8 +37,17 @@ const STORAGE_KEY = "stryder-data-v2";
 const API_ENDPOINT = "/api/data";
 
 let currentData: AppData | null = null;
+/** This device's last known synced state — what it last pulled from the
+ * server, or successfully saved there. Serves as the common ancestor for
+ * the three-way merge in pushToServer (see lib/merge-app-data.ts): without
+ * it, one device's save can only either overwrite the server wholesale or
+ * not, with no way to tell "a field only the other device changed since we
+ * last synced" apart from "a field we're intentionally reverting". */
+let lastSyncedData: AppData | null = null;
 let initialized = false;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let pushInFlight = false;
+let pushPending = false;
 const listeners = new Set<() => void>();
 
 // ---- Shared-storage connection status (for the "Data" section in More) ----
@@ -127,11 +137,12 @@ async function pullFromServer() {
     if (body.data) {
       // Server is the shared source of truth once it has something saved.
       currentData = normalize(body.data);
+      lastSyncedData = currentData;
       saveToStorage(currentData);
       notify();
     } else if (currentData) {
       // Supabase is linked but empty (first run) — seed it from what we have.
-      pushToServer(currentData);
+      schedulePush();
     }
   } catch {
     // Offline, or no /api/data (older deploy) — stay local-only.
@@ -139,23 +150,71 @@ async function pullFromServer() {
   }
 }
 
-function pushToServer(data: AppData) {
+function schedulePush() {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
-    fetch(API_ENDPOINT, {
+    pushTimer = null;
+    runPush();
+  }, 400);
+}
+
+/** Guards against two push cycles overlapping — e.g. a mutation lands while
+ * a previous save's fetch-merge-PUT round trip is still in flight. Rather
+ * than racing two merges against each other, a mutation during an in-flight
+ * push just marks `pushPending` and gets picked up by a follow-up cycle
+ * right after the current one finishes. */
+function runPush() {
+  if (pushInFlight) {
+    pushPending = true;
+    return;
+  }
+  pushInFlight = true;
+  pushOnce().finally(() => {
+    pushInFlight = false;
+    if (pushPending) {
+      pushPending = false;
+      runPush();
+    }
+  });
+}
+
+async function pushOnce() {
+  const localSnapshot = currentData;
+  if (!localSnapshot) return;
+
+  try {
+    // Always re-fetch right before saving — this is the merge's whole
+    // point. Pushing localSnapshot on its own (the old behavior) risks
+    // silently overwriting anything another device saved since this one
+    // last synced; see lib/merge-app-data.ts.
+    const getRes = await fetch(API_ENDPOINT, { cache: "no-store" });
+    if (!getRes.ok) throw new Error(String(getRes.status));
+    const getBody = (await getRes.json()) as { configured: boolean; data: AppData | null };
+    setSyncStatus({ checked: true, configured: getBody.configured, lastError: false });
+    if (!getBody.configured) return;
+
+    const toSave =
+      getBody.data && lastSyncedData ? mergeAppData(lastSyncedData, localSnapshot, normalize(getBody.data)) : localSnapshot;
+
+    const putRes = await fetch(API_ENDPOINT, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    })
-      .then((res) => res.json())
-      .then((body: { configured: boolean; saved?: boolean }) => {
-        setSyncStatus({ checked: true, configured: body.configured, lastError: body.configured && !body.saved });
-      })
-      .catch(() => {
-        // Best-effort — localStorage already has it, we'll retry on next mutation.
-        setSyncStatus({ lastError: syncStatus.configured });
-      });
-  }, 400);
+      body: JSON.stringify(toSave),
+    });
+    const putBody = (await putRes.json()) as { configured: boolean; saved?: boolean };
+    setSyncStatus({ checked: true, configured: putBody.configured, lastError: putBody.configured && !putBody.saved });
+
+    if (putBody.saved) {
+      currentData = toSave;
+      lastSyncedData = toSave;
+      saveToStorage(toSave);
+      notify();
+    }
+  } catch {
+    // Offline, or the fetch/PUT failed — localStorage already has our
+    // local edits, so nothing's lost; we'll retry on the next mutation.
+    setSyncStatus({ lastError: syncStatus.configured });
+  }
 }
 
 function notify() {
@@ -179,13 +238,25 @@ function getServerSnapshot(): AppData | null {
 function set(next: AppData) {
   currentData = next;
   saveToStorage(next);
-  pushToServer(next);
+  schedulePush();
   notify();
 }
 
 function mutate(updater: (draft: AppData) => AppData) {
   if (!currentData) return;
   set(updater(currentData));
+}
+
+/** Like `set`, but for the rare deliberate "replace everything" actions
+ * (Import JSON, Erase all data) — these are explicitly meant to overwrite
+ * the shared record wholesale, not merge against whatever's there, so this
+ * clears the merge base rather than treating it as a normal edit. */
+function setOverwrite(next: AppData) {
+  currentData = next;
+  lastSyncedData = null;
+  saveToStorage(next);
+  schedulePush();
+  notify();
 }
 
 // ---- Typed actions (plain functions — always read the latest module state) ----
@@ -396,7 +467,7 @@ function importJson(json: string): { ok: boolean; error?: string } {
     if (!parsed || typeof parsed !== "object" || parsed.version !== 1) {
       return { ok: false, error: "This file doesn't look like a Stryder export." };
     }
-    set(normalize(parsed));
+    setOverwrite(normalize(parsed));
     return { ok: true };
   } catch {
     return { ok: false, error: "Couldn't parse that file as JSON." };
@@ -406,7 +477,7 @@ function exportJson(): string {
   return JSON.stringify(currentData, null, 2);
 }
 function resetToSeed() {
-  set(buildStarterData());
+  setOverwrite(buildStarterData());
 }
 
 const actions = {

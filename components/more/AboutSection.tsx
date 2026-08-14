@@ -33,16 +33,15 @@ export function AboutSection() {
               the URL.
             </p>
             <p>
-              Two limitations worth knowing. First, syncing isn&apos;t real-time — each device
-              pulls the latest data when a page loads and pushes changes back after each edit, so
-              if you&apos;re both using the app at the same moment, a screen that&apos;s already
-              open won&apos;t pick up the other person&apos;s change until it&apos;s refreshed.
-              Second, every save replaces the whole record rather than merging it field-by-field —
-              if you&apos;re both mid-edit before either of you has refreshed, whichever save
-              lands last wins, and can overwrite the other person&apos;s changes rather than
-              combining them. In practice, for logging one event at a time, this is unlikely to
-              bite — it mostly matters if you&apos;re both editing profile-style fields (like
-              Health or Settings) at the exact same time.
+              One limitation worth knowing: syncing isn&apos;t real-time — each device pulls the
+              latest data when a page loads and pushes changes back after each edit, so if
+              you&apos;re both using the app at the same moment, a screen that&apos;s already open
+              won&apos;t pick up the other person&apos;s change until it&apos;s refreshed. Each
+              save does re-check the server first and merges new/changed entries from both sides
+              rather than one overwriting the other wholesale, so this mostly just means what you
+              see on screen can be briefly stale, not that anything gets lost — the one edge case
+              still worth knowing is if you both edit the exact same field (like the handoff note)
+              before either refreshes, whichever save lands last wins for that one field.
             </p>
             <p>
               It&apos;s still worth keeping an occasional backup — use Export/Import in Data to
