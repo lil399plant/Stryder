@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabase, SUPABASE_TABLE, SUPABASE_ROW_ID, NOTIFIED_NUDGES_TABLE } from "@/lib/supabase";
 import { sendPush } from "@/lib/push-server";
 import { computeNudges } from "@/lib/rules";
@@ -30,6 +31,25 @@ import type { AppData } from "@/lib/types";
 
 const EVENT_REMINDER_PREFIX = "event-reminder:";
 const EVENT_REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/** Atomically claims an id via a plain insert (not upsert) — the table's
+ * primary key does the locking for us, so two overlapping cron runs can't
+ * both decide they're the one sending a given nudge/reminder. Returns
+ * false if someone else already claimed it (or on any other error, since
+ * skipping is the safe default — better to miss one tick than double-send). */
+async function claim(supabase: SupabaseClient, id: string): Promise<boolean> {
+  const { error } = await supabase.from(NOTIFIED_NUDGES_TABLE).insert({ id, notified_at: new Date().toISOString() });
+  if (!error) return true;
+  if (error.code !== "23505") console.error("cron-nudges: claim failed", id, error);
+  return false;
+}
+
+/** Releases a claim that turned out not to be delivered (e.g. the on-duty
+ * caregiver has no subscribed device yet) so the next tick retries it,
+ * instead of silently giving up on this occurrence forever. */
+async function release(supabase: SupabaseClient, id: string) {
+  await supabase.from(NOTIFIED_NUDGES_TABLE).delete().eq("id", id);
+}
 
 export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get("token");
@@ -82,12 +102,16 @@ export async function GET(request: Request) {
   const nudgesToSend = nudges.filter((n) => !alreadyNotified.has(n.id));
   let nudgesSent = 0;
   for (const nudge of nudgesToSend) {
+    if (!(await claim(supabase, nudge.id))) continue; // another run already has this one
     const result = await sendPush(
       { title: "Might be worth checking on Stryder", body: nudge.text, url: "/today" },
       { onlyCaregiver: appData.handoff.onDuty }
     );
     nudgesSent += result.sent;
-    await supabase.from(NOTIFIED_NUDGES_TABLE).upsert({ id: nudge.id, notified_at: new Date().toISOString() });
+    // Nothing actually delivered (e.g. the on-duty caregiver has no
+    // subscribed device yet) — release the claim so this is retried next
+    // tick instead of being silently given up on for this whole occurrence.
+    if (result.sent === 0) await release(supabase, nudge.id);
   }
 
   // ---- 2. Upcoming-event reminders — both caregivers ----
@@ -101,6 +125,7 @@ export async function GET(request: Request) {
   for (const event of dueEvents) {
     const id = `${EVENT_REMINDER_PREFIX}${event.id}`;
     if (alreadyNotified.has(id)) continue;
+    if (!(await claim(supabase, id))) continue; // another run already has this one
     const category = SPECIAL_EVENT_CATEGORY_LABEL[event.category];
     const label = event.title ? `${event.title} (${category})` : category;
     const result = await sendPush({
@@ -109,7 +134,7 @@ export async function GET(request: Request) {
       url: "/log",
     });
     eventRemindersSent += result.sent;
-    await supabase.from(NOTIFIED_NUDGES_TABLE).upsert({ id, notified_at: new Date().toISOString() });
+    if (result.sent === 0) await release(supabase, id); // nobody subscribed yet — retry next tick
   }
 
   // Tidy up: once a reminded event's start time has passed, its row will
