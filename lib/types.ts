@@ -283,6 +283,24 @@ export interface PuppyProfile {
   photoPlaceholder: boolean;
 }
 
+/** A dated photo for tracking growth/progress over time (More > Photos).
+ * The file itself lives in Supabase Storage (public bucket, see
+ * lib/supabase.ts); only its URL and a little metadata live here — same
+ * pattern as VaccineRecord. `date` defaults to the day it was uploaded but
+ * is editable, so backfilling older photos onto the right point in the
+ * timeline doesn't require re-dating them externally first. */
+export interface GrowthPhoto {
+  id: string;
+  date: string; // yyyy-mm-dd
+  caption?: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string; // ISO — when the file was actually uploaded, distinct from `date`
+  caregiver: Caregiver;
+}
+
 export interface CaregiverProfile {
   id: Caregiver;
   displayName: string;
@@ -325,6 +343,7 @@ export interface AppSettings {
 export interface AppData {
   version: 1;
   puppy: PuppyProfile;
+  photos: GrowthPhoto[];
   caregivers: CaregiverProfile[];
   handoff: HandoffState;
   schedule: ScheduleBlock[];

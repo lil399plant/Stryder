@@ -68,6 +68,7 @@ export function mergeAppData(base: AppData, local: AppData, server: AppData): Ap
   return {
     version: local.version,
     puppy: mergeSingleton(base.puppy, local.puppy, server.puppy),
+    photos: mergeArrayById(base.photos, local.photos, server.photos),
     caregivers: mergeArrayById(base.caregivers, local.caregivers, server.caregivers),
     handoff: mergeSingleton(base.handoff, local.handoff, server.handoff),
     schedule: mergeArrayById(base.schedule, local.schedule, server.schedule),

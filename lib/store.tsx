@@ -7,6 +7,7 @@ import type {
   Caregiver,
   CueEntry,
   DownstairsEvent,
+  GrowthPhoto,
   HandoffState,
   HealthProfile,
   IncidentEvent,
@@ -81,6 +82,7 @@ function normalize(data: AppData): AppData {
     ...data,
     downstairsTrips: data.downstairsTrips ?? [],
     events: data.events ?? [],
+    photos: data.photos ?? [],
     settings: {
       ...data.settings,
       nudgeThresholds: data.settings?.nudgeThresholds ?? { ...DEFAULT_NUDGE_THRESHOLDS },
@@ -410,6 +412,18 @@ function deleteCue(id: string) {
   mutate((d) => ({ ...d, cues: d.cues.filter((c) => c.id !== id) }));
 }
 
+function addPhoto(p: Omit<GrowthPhoto, "id">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, photos: [...d.photos, { ...p, id }] }));
+  return id;
+}
+function updatePhoto(id: string, patch: Partial<GrowthPhoto>) {
+  mutate((d) => ({ ...d, photos: d.photos.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+}
+function deletePhoto(id: string) {
+  mutate((d) => ({ ...d, photos: d.photos.filter((p) => p.id !== id) }));
+}
+
 function addVaccine(v: Omit<VaccineRecord, "id">): string {
   const id = makeId();
   mutate((d) => ({ ...d, vaccines: [...d.vaccines, { ...v, id }] }));
@@ -513,6 +527,9 @@ const actions = {
   addCue,
   updateCue,
   deleteCue,
+  addPhoto,
+  updatePhoto,
+  deletePhoto,
   addVaccine,
   updateVaccine,
   deleteVaccine,

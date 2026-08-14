@@ -28,6 +28,7 @@ export function buildStarterData(): AppData {
       currentWeightLbs: "",
       photoPlaceholder: true,
     },
+    photos: [],
     caregivers: [
       { id: "me", displayName: "Me" },
       { id: "ribo", displayName: "Ribo" },

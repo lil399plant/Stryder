@@ -30,6 +30,11 @@ export const NOTIFIED_NUDGES_TABLE = "notified_nudges";
 export const HEALTH_DOCS_BUCKET = "health-documents";
 export const HEALTH_DOCS_MAX_BYTES = 15 * 1024 * 1024; // 15MB
 
+// Growth photos (More > Photos) — same public-bucket trust model as
+// health documents above, just images instead of documents/PDFs.
+export const GROWTH_PHOTOS_BUCKET = "growth-photos";
+export const GROWTH_PHOTOS_MAX_BYTES = 15 * 1024 * 1024; // 15MB
+
 let client: SupabaseClient | null | undefined;
 
 export function getSupabase(): SupabaseClient | null {
@@ -46,32 +51,36 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
-let bucketReady: Promise<boolean> | null = null;
+const bucketReady = new Map<string, Promise<boolean>>();
 
-/** Creates the health-documents bucket the first time it's needed, so
- * there's no manual "run this in the Supabase dashboard" setup step (unlike
- * the app_data table, which does need a one-time SQL step — see
- * .env.example). Idempotent and cached per server instance. */
-export function ensureHealthDocsBucket(supabase: SupabaseClient): Promise<boolean> {
-  if (bucketReady) return bucketReady;
-  bucketReady = (async () => {
+/** Creates a public storage bucket the first time it's needed, so there's
+ * no manual "run this in the Supabase dashboard" setup step (unlike the
+ * app_data table, which does need a one-time SQL step — see .env.example).
+ * Idempotent and cached per server instance per bucket name. */
+export function ensureBucket(supabase: SupabaseClient, bucket: string, maxBytes: number): Promise<boolean> {
+  const cached = bucketReady.get(bucket);
+  if (cached) return cached;
+
+  const promise = (async () => {
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     if (listError) {
-      bucketReady = null;
+      bucketReady.delete(bucket);
       throw listError;
     }
-    if (buckets?.some((b) => b.name === HEALTH_DOCS_BUCKET)) return true;
+    if (buckets?.some((b) => b.name === bucket)) return true;
 
-    const { error: createError } = await supabase.storage.createBucket(HEALTH_DOCS_BUCKET, {
+    const { error: createError } = await supabase.storage.createBucket(bucket, {
       public: true,
-      fileSizeLimit: HEALTH_DOCS_MAX_BYTES,
+      fileSizeLimit: maxBytes,
     });
     // Another request may have created it in the meantime — that's fine.
     if (createError && !/already exists/i.test(createError.message)) {
-      bucketReady = null;
+      bucketReady.delete(bucket);
       throw createError;
     }
     return true;
   })();
-  return bucketReady;
+
+  bucketReady.set(bucket, promise);
+  return promise;
 }

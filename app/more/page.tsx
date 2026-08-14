@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpenText, ChevronRight, BarChart3 } from "lucide-react";
 import { ProfileSection } from "@/components/more/ProfileSection";
+import { GrowthPhotosSection } from "@/components/more/GrowthPhotosSection";
 import { CaregiversSection } from "@/components/more/CaregiversSection";
 import { DataSection } from "@/components/more/DataSection";
 import { SettingsSection } from "@/components/more/SettingsSection";
@@ -17,6 +18,7 @@ export default function MorePage() {
       </div>
 
       <ProfileSection />
+      <GrowthPhotosSection />
       <CaregiversSection />
 
       <Link
