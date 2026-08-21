@@ -28,8 +28,9 @@ export function allPottyOccurrences(data: AppData): PottyOccurrence[] {
 
   for (const trip of data.downstairsTrips) {
     for (const m of trip.pottyMoments ?? []) {
-      if (m.type === "pee" || m.type === "both") out.push({ timestamp: trip.startTime, type: "pee" });
-      if (m.type === "poop" || m.type === "both") out.push({ timestamp: trip.startTime, type: "poop" });
+      const timestamp = m.timestamp ?? trip.startTime;
+      if (m.type === "pee" || m.type === "both") out.push({ timestamp, type: "pee" });
+      if (m.type === "poop" || m.type === "both") out.push({ timestamp, type: "poop" });
     }
   }
 

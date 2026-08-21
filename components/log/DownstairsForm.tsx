@@ -42,7 +42,7 @@ export function DownstairsForm({
   const removeMoment = (index: number) =>
     setValues((v) => ({ ...v, pottyMoments: v.pottyMoments.filter((_, i) => i !== index) }));
   const addMoment = () =>
-    setValues((v) => ({ ...v, pottyMoments: [...v.pottyMoments, makeDefaultPottyMoment()] }));
+    setValues((v) => ({ ...v, pottyMoments: [...v.pottyMoments, makeDefaultPottyMoment(v.startTime)] }));
 
   return (
     <form

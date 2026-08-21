@@ -135,7 +135,7 @@ export function AddEntrySheet({ kind, onClose, initialOverride, eventMode = "log
               startTime: nowIso,
               endTime: undefined,
               outdoorTripType: "walk-first",
-              pottyMoments: [makeDefaultPottyMoment()],
+              pottyMoments: [makeDefaultPottyMoment(nowIso)],
               notes: "",
               caregiver: onDuty,
               ...(initialOverride as Partial<DownstairsFormValues>),

@@ -135,9 +135,14 @@ export type PottyMomentType = "pee" | "poop" | "both";
  * trip-scoped — see PottyEvent above). */
 export type PottyMomentSuccess = "went-promptly" | "took-a-while" | "distracted";
 
-/** One pee/poop occurrence logged as part of a DownstairsEvent. */
+/** One pee/poop occurrence logged as part of a DownstairsEvent. Carries its
+ * own timestamp — defaulting to the trip's startTime, but independently
+ * editable — so a moment logged partway through a longer walk doesn't skew
+ * "time awake since last potty" math (see lib/potty.ts) toward the start of
+ * the trip. */
 export interface PottyMoment {
   id: string;
+  timestamp: ISODateTime;
   type: PottyMomentType;
   success: PottyMomentSuccess;
   /** Only meaningful when type is "poop" or "both". */
