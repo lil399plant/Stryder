@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Caregiver, DownstairsEvent } from "@/lib/types";
+import type { Caregiver, DownstairsEvent, PottyMoment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChoiceChips } from "@/components/ui/choice-chips";
 import { OUTDOOR_TRIP_OPTIONS } from "@/lib/options";
 import { formatDateTimeLocal, fromDateTimeLocal } from "@/lib/time";
+import { PottyMomentFields, makeDefaultPottyMoment } from "./PottyMomentFields";
 
 export type DownstairsFormValues = Omit<DownstairsEvent, "id" | "kind">;
 
@@ -32,6 +33,16 @@ export function DownstairsForm({
   const [values, setValues] = React.useState<DownstairsFormValues>(initial);
   const set = <K extends keyof DownstairsFormValues>(key: K, val: DownstairsFormValues[K]) =>
     setValues((v) => ({ ...v, [key]: val }));
+
+  const updateMoment = (index: number, patch: Partial<PottyMoment>) =>
+    setValues((v) => ({
+      ...v,
+      pottyMoments: v.pottyMoments.map((m, i) => (i === index ? { ...m, ...patch } : m)),
+    }));
+  const removeMoment = (index: number) =>
+    setValues((v) => ({ ...v, pottyMoments: v.pottyMoments.filter((_, i) => i !== index) }));
+  const addMoment = () =>
+    setValues((v) => ({ ...v, pottyMoments: [...v.pottyMoments, makeDefaultPottyMoment()] }));
 
   return (
     <form
@@ -67,6 +78,27 @@ export function DownstairsForm({
           value={values.outdoorTripType}
           onChange={(v) => set("outdoorTripType", v as DownstairsFormValues["outdoorTripType"])}
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Pee / poop this trip</Label>
+        <div className="flex flex-col gap-2.5">
+          {values.pottyMoments.map((moment, i) => (
+            <PottyMomentFields
+              key={moment.id}
+              moment={moment}
+              onChange={(patch) => updateMoment(i, patch)}
+              onRemove={() => removeMoment(i)}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={addMoment}
+          className="self-start text-[13.5px] font-medium text-forest"
+        >
+          + Add potty moment
+        </button>
       </div>
 
       <div className="flex flex-col gap-1.5">

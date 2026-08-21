@@ -8,7 +8,7 @@
 // components/more/ImportTextSection.tsx, which only ever appends the
 // sanitized entries via the store's add* actions.
 
-import type { Caregiver, DownstairsEvent, IncidentEvent, MealEvent, NapEvent, PottyEvent, SpecialEvent } from "./types";
+import type { Caregiver, DownstairsEvent, IncidentEvent, MealEvent, NapEvent, PottyEvent, PottyMoment, SpecialEvent } from "./types";
 import {
   POTTY_TYPE_OPTIONS,
   POTTY_LOCATION_OPTIONS,
@@ -16,6 +16,8 @@ import {
   SUCCESS_OPTIONS,
   POOP_QUALITY_OPTIONS,
   POTTY_TAG_OPTIONS,
+  POTTY_MOMENT_TYPE_OPTIONS,
+  POTTY_MOMENT_SUCCESS_OPTIONS,
   MEAL_TYPE_OPTIONS,
   APPETITE_OPTIONS,
   ADD_ON_OPTIONS,
@@ -26,6 +28,7 @@ import {
   INCIDENT_CATEGORY_OPTIONS,
   SEVERITY_OPTIONS,
 } from "./options";
+import { makeId } from "./id";
 
 type NewEntry<T extends { id: string; kind: string }> = Omit<T, "id" | "kind">;
 
@@ -46,6 +49,8 @@ const OUTDOOR_TRIPS = setOf(OUTDOOR_TRIP_OPTIONS);
 const SUCCESSES = setOf(SUCCESS_OPTIONS);
 const POOP_QUALITIES = setOf(POOP_QUALITY_OPTIONS);
 const POTTY_TAGS = setOf(POTTY_TAG_OPTIONS);
+const POTTY_MOMENT_TYPES = setOf(POTTY_MOMENT_TYPE_OPTIONS);
+const POTTY_MOMENT_SUCCESSES = setOf(POTTY_MOMENT_SUCCESS_OPTIONS);
 const MEAL_TYPES = setOf(MEAL_TYPE_OPTIONS);
 const APPETITES = setOf(APPETITE_OPTIONS);
 const ADD_ONS = setOf(ADD_ON_OPTIONS);
@@ -140,11 +145,27 @@ function sanitizeNap(raw: any): NewEntry<NapEvent> | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sanitizePottyMoment(raw: any): PottyMoment | null {
+  if (!raw || typeof raw !== "object") return null;
+  if (!POTTY_MOMENT_TYPES.has(raw.type) || !POTTY_MOMENT_SUCCESSES.has(raw.success)) return null;
+
+  const moment: PottyMoment = { id: makeId(), type: raw.type, success: raw.success };
+  if (POOP_QUALITIES.has(raw.poopQuality)) moment.poopQuality = raw.poopQuality;
+  return moment;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sanitizeDownstairs(raw: any): NewEntry<DownstairsEvent> | null {
   if (!raw || typeof raw !== "object") return null;
   if (!isValidIso(raw.startTime) || !isCaregiver(raw.caregiver)) return null;
 
-  const entry: NewEntry<DownstairsEvent> = { startTime: raw.startTime, caregiver: raw.caregiver };
+  const entry: NewEntry<DownstairsEvent> = {
+    startTime: raw.startTime,
+    caregiver: raw.caregiver,
+    pottyMoments: Array.isArray(raw.pottyMoments)
+      ? raw.pottyMoments.map(sanitizePottyMoment).filter((m: PottyMoment | null): m is PottyMoment => m !== null)
+      : [],
+  };
   if (isValidIso(raw.endTime)) entry.endTime = raw.endTime;
   if (OUTDOOR_TRIPS.has(raw.outdoorTripType)) entry.outdoorTripType = raw.outdoorTripType;
   const notes = str(raw.notes);

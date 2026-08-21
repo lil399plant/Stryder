@@ -15,6 +15,7 @@ import {
   INCIDENT_CATEGORY_LABEL,
   SEVERITY_LABEL,
   SPECIAL_EVENT_CATEGORY_LABEL,
+  pottyMomentsSummaryLabel,
 } from "./timeline";
 import { caregiverName as caregiverNameFor } from "./rules";
 
@@ -73,7 +74,8 @@ function napLine(n: NapEvent, who: string): string {
 
 function downstairsLine(d: DownstairsEvent, who: string): string {
   const trip = d.outdoorTripType ? OUTDOOR_TRIP_LABEL[d.outdoorTripType] ?? d.outdoorTripType : null;
-  const detail = [trip, d.notes ? `note: ${d.notes}` : null].filter(Boolean).join(", ");
+  const potty = pottyMomentsSummaryLabel(d.pottyMoments ?? []);
+  const detail = [trip, potty, d.notes ? `note: ${d.notes}` : null].filter(Boolean).join(", ");
   if (d.endTime) {
     const mins = minutesBetween(d.startTime, d.endTime);
     return `${fmt(d.startTime)}–${fmt(d.endTime)} (${mins}m) — Downstairs trip${detail ? `: ${detail}` : ""} (${who})`;

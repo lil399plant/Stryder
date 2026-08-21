@@ -23,6 +23,7 @@ import {
   INCIDENT_CATEGORY_LABEL,
   SEVERITY_LABEL,
   TRAINING_OUTCOME_LABEL,
+  pottyMomentsSummaryLabel,
 } from "@/lib/timeline";
 
 /** Shared rendering rules for a logged entry — used by both the vertical
@@ -50,6 +51,15 @@ export function emojiFor(item: TimelineItem): string | null {
     if (item.data.type === "poop") return "💩";
     if (item.data.type === "both") return "🍋💩";
     if (item.data.type === "accident") return "❌";
+    return null;
+  }
+  if (item.kind === "downstairs") {
+    const moments = item.data.pottyMoments ?? [];
+    const hasPee = moments.some((m) => m.type !== "poop");
+    const hasPoop = moments.some((m) => m.type !== "pee");
+    if (hasPee && hasPoop) return "🍋💩";
+    if (hasPee) return "🍋";
+    if (hasPoop) return "💩";
     return null;
   }
   if (item.kind === "meal") {
@@ -192,8 +202,11 @@ export function subtitleFor(item: TimelineItem): string {
       return loc ? `${loc} · ${range}` : range;
     }
     case "downstairs": {
-      if (!item.data.endTime) return `Started ${formatClock(item.data.startTime)}`;
-      return `${formatClock(item.data.startTime)}–${formatClock(item.data.endTime)}`;
+      const timeRange = !item.data.endTime
+        ? `Started ${formatClock(item.data.startTime)}`
+        : `${formatClock(item.data.startTime)}–${formatClock(item.data.endTime)}`;
+      const potty = pottyMomentsSummaryLabel(item.data.pottyMoments ?? []);
+      return potty ? `${timeRange} · ${potty}` : timeRange;
     }
     case "event": {
       const cat = SPECIAL_EVENT_CATEGORY_LABEL[item.data.category];
