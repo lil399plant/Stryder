@@ -206,6 +206,7 @@ export function buildStarterData(): AppData {
       { id: makeId(), cue: "Crate / Bed", meaning: "Enter calm rest space", usedBy: ["me", "ribo"] },
       { id: makeId(), cue: "Leave it", meaning: "Disengage from an item", usedBy: ["me", "ribo"] },
     ],
+    treatPreferences: { chews: "", treats: "" },
     vaccines: [],
     insurance: {
       provider: "",

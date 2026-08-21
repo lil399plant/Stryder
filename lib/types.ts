@@ -256,6 +256,13 @@ export interface CueEntry {
   usedBy: Caregiver[];
 }
 
+/** Freeform notes on what Stryder prefers — not a log, just a running
+ * reference caregivers jot down and update over time (Training > Treats). */
+export interface TreatPreferences {
+  chews: string;
+  treats: string;
+}
+
 // ---------- Health ----------
 
 /** A vet/vaccine document a caregiver uploaded — a photo or PDF of the
@@ -381,6 +388,7 @@ export interface AppData {
   trainingPlans: TrainingPlan[];
   trainingSessions: TrainingSession[];
   cues: CueEntry[];
+  treatPreferences: TreatPreferences;
   vaccines: VaccineRecord[];
   insurance: InsuranceInfo;
   health: HealthProfile;

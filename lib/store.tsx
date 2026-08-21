@@ -19,6 +19,7 @@ import type {
   SpecialEvent,
   TrainingPlan,
   TrainingSession,
+  TreatPreferences,
   VaccineRecord,
 } from "./types";
 import { buildStarterData } from "./seed";
@@ -86,6 +87,7 @@ function normalize(data: AppData): AppData {
     })),
     events: data.events ?? [],
     photos: data.photos ?? [],
+    treatPreferences: data.treatPreferences ?? { chews: "", treats: "" },
     settings: {
       ...data.settings,
       nudgeThresholds: data.settings?.nudgeThresholds ?? { ...DEFAULT_NUDGE_THRESHOLDS },
@@ -445,6 +447,9 @@ function updateInsurance(patch: Partial<InsuranceInfo>) {
 function updateHealthProfile(patch: Partial<HealthProfile>) {
   mutate((d) => ({ ...d, health: { ...d.health, ...patch } }));
 }
+function updateTreatPreferences(patch: Partial<TreatPreferences>) {
+  mutate((d) => ({ ...d, treatPreferences: { ...d.treatPreferences, ...patch } }));
+}
 function updatePuppy(patch: Partial<PuppyProfile>) {
   mutate((d) => ({ ...d, puppy: { ...d.puppy, ...patch } }));
 }
@@ -538,6 +543,7 @@ const actions = {
   deleteVaccine,
   updateInsurance,
   updateHealthProfile,
+  updateTreatPreferences,
   updatePuppy,
   updateCaregiverName,
   setHandoff,

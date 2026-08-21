@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpenText, Plus } from "lucide-react";
+import { BookOpenText, Bone, Plus } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { makeId } from "@/lib/id";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,17 @@ export default function TrainingPage() {
         <div className="flex-1">
           <p className="text-[14px] font-medium">Training consistency &amp; cue dictionary</p>
           <p className="text-[12px] text-muted-foreground">Shared cues so Me and Ribo stay in sync</p>
+        </div>
+      </Link>
+
+      <Link
+        href="/training/treats"
+        className="mb-4 flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 hover:bg-tan-soft/15"
+      >
+        <Bone className="h-4.5 w-4.5 text-muted-foreground" />
+        <div className="flex-1">
+          <p className="text-[14px] font-medium">Treats</p>
+          <p className="text-[12px] text-muted-foreground">Chews &amp; treats he prefers</p>
         </div>
       </Link>
 
