@@ -2,22 +2,39 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpenText } from "lucide-react";
+import { BookOpenText, Plus } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { makeId } from "@/lib/id";
+import { Button } from "@/components/ui/button";
 import { PlanCard } from "@/components/training/PlanCard";
 import { PlanDetail } from "@/components/training/PlanDetail";
 
 export default function TrainingPage() {
-  const { data } = useStore();
+  const store = useStore();
+  const { data } = store;
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
 
   if (!data) return null;
 
-  const selectedPlan = data.trainingPlans.find((p) => p.id === selectedPlanId) ?? null;
+  const plans = data.trainingPlans.filter((p) => !p.archived);
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
 
   if (selectedPlan) {
     return <PlanDetail plan={selectedPlan} onBack={() => setSelectedPlanId(null)} />;
   }
+
+  const handleNewPlan = () => {
+    const id = store.addTrainingPlan({
+      name: "New plan",
+      goal: "",
+      whyItMatters: "",
+      stages: [{ id: makeId(), title: "Step 1" }],
+      currentStageIndex: 0,
+      freeformNotes: "",
+      reminderEnabled: false,
+    });
+    setSelectedPlanId(id);
+  };
 
   return (
     <div>
@@ -28,6 +45,10 @@ export default function TrainingPage() {
             Small, no-pressure steps. Progress at Stryder&apos;s pace, not a schedule.
           </p>
         </div>
+        <Button size="sm" variant="secondary" className="shrink-0 gap-1.5" onClick={handleNewPlan}>
+          <Plus className="h-3.5 w-3.5" />
+          New plan
+        </Button>
       </div>
 
       <Link
@@ -41,7 +62,7 @@ export default function TrainingPage() {
         </div>
       </Link>
 
-      {data.trainingPlans.map((plan) => {
+      {plans.map((plan) => {
         const sessions = data.trainingSessions.filter((s) => s.planId === plan.id);
         const lastSession = [...sessions].sort(
           (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
