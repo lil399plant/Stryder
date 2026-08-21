@@ -3,8 +3,9 @@
 // states the plain-language rule that produced it so it's easy to trust
 // or ignore. See NextNeedsCard for how these render.
 
-import type { AppData, Caregiver, LogEvent, NudgeThresholds, PottyType } from "./types";
+import type { AppData, Caregiver, LogEvent, NudgeThresholds } from "./types";
 import { minutesBetween } from "./time";
+import { lastPottyOccurrence } from "./potty";
 
 export type PuppyState = "napping" | "settling" | "overnight" | "awake";
 
@@ -69,11 +70,12 @@ export function allEvents(data: AppData): LogEvent[] {
   ];
 }
 
-export function lastPottyOfType(data: AppData, types: PottyType[]) {
-  const matches = data.pottyEvents
-    .filter((p) => types.includes(p.type) || (types.includes("pee") && p.type === "both") || (types.includes("poop") && p.type === "both"))
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return matches[0] ?? null;
+/** Most recent pee/poop, across standalone PottyEvents *and* downstairs-trip
+ * potty moments (see lib/potty.ts) — so "last pee"/"last poop" and the
+ * potty-gap nudges below stay accurate no matter which flow was used to log
+ * it. */
+export function lastPottyOfType(data: AppData, types: ("pee" | "poop")[]) {
+  return lastPottyOccurrence(data, types);
 }
 
 export function lastMeal(data: AppData) {

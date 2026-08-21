@@ -8,6 +8,7 @@ import { BathroomForm, type BathroomFormValues } from "./BathroomForm";
 import { MealForm, type MealFormValues } from "./MealForm";
 import { NapForm, type NapFormValues } from "./NapForm";
 import { DownstairsForm, type DownstairsFormValues } from "./DownstairsForm";
+import { makeDefaultPottyMoment } from "./PottyMomentFields";
 import { EventForm, type EventFormValues } from "./EventForm";
 import { IncidentForm, type IncidentFormValues } from "./IncidentForm";
 
@@ -134,6 +135,7 @@ export function AddEntrySheet({ kind, onClose, initialOverride, eventMode = "log
               startTime: nowIso,
               endTime: undefined,
               outdoorTripType: "walk-first",
+              pottyMoments: [makeDefaultPottyMoment()],
               notes: "",
               caregiver: onDuty,
               ...(initialOverride as Partial<DownstairsFormValues>),

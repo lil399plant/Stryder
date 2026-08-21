@@ -13,6 +13,7 @@ import {
   SPECIAL_EVENT_CATEGORY_LABEL,
   INCIDENT_CATEGORY_LABEL,
   SEVERITY_LABEL,
+  pottyMomentsSummaryLabel,
 } from "@/lib/timeline";
 
 // Shared review-before-import list — one-line-per-entry preview grouped by
@@ -61,7 +62,12 @@ export function ImportPreviewList({
       </EntryGroup>
       <EntryGroup title="Downstairs trips">
         {extraction.downstairsTrips.map((e, i) => (
-          <EntryRow key={`d${i}`} time={formatClock(e.startTime)} caregiver={caregiverName(e.caregiver)} summary="Downstairs trip" />
+          <EntryRow
+            key={`d${i}`}
+            time={formatClock(e.startTime)}
+            caregiver={caregiverName(e.caregiver)}
+            summary={pottyMomentsSummaryLabel(e.pottyMoments) ? `Downstairs trip · ${pottyMomentsSummaryLabel(e.pottyMoments)}` : "Downstairs trip"}
+          />
         ))}
       </EntryGroup>
       <EntryGroup title="Events">

@@ -121,9 +121,28 @@ export interface NapEvent {
 }
 
 // ---------- Downstairs trips (go outside) ----------
-// A duration event, distinct from the point-in-time potty log — a
-// downstairs trip is the walk/outing itself; any pee/poop that happened
-// during it is still logged separately as its own PottyEvent.
+// A duration event — the walk/outing itself. Any pee/poop that happened
+// during it can be logged right on the trip as a PottyMoment (below);
+// separately, the standalone one-tap PottyEvent quick-log still exists for
+// logging pee/poop any time (including outside a trip, e.g. during a
+// Special Event) and for accidents, which are never trip-scoped.
+
+export type PottyMomentType = "pee" | "poop" | "both";
+
+/** How a pee/poop moment went, scoped to a downstairs trip — a narrower
+ * set than PottySuccess: "did-not-go" doesn't apply (you just wouldn't add
+ * a moment for it), and "accident" doesn't apply (accidents are never
+ * trip-scoped — see PottyEvent above). */
+export type PottyMomentSuccess = "went-promptly" | "took-a-while" | "distracted";
+
+/** One pee/poop occurrence logged as part of a DownstairsEvent. */
+export interface PottyMoment {
+  id: string;
+  type: PottyMomentType;
+  success: PottyMomentSuccess;
+  /** Only meaningful when type is "poop" or "both". */
+  poopQuality?: PoopQuality;
+}
 
 export interface DownstairsEvent {
   id: string;
@@ -131,6 +150,7 @@ export interface DownstairsEvent {
   startTime: ISODateTime;
   endTime?: ISODateTime;
   outdoorTripType?: OutdoorTripType;
+  pottyMoments: PottyMoment[];
   notes?: string;
   caregiver: Caregiver;
 }

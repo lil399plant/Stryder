@@ -5,6 +5,7 @@ import type {
   MealEvent,
   NapEvent,
   PottyEvent,
+  PottyMoment,
   SpecialEvent,
   TrainingSession,
 } from "./types";
@@ -183,6 +184,17 @@ export const TRAINING_OUTCOME_LABEL: Record<TrainingSession["outcome"], string> 
   "too-hard": "Too hard",
   "needs-easier-step": "Needs easier step",
 };
+
+/** Short summary of a trip's potty moments for the timeline subtitle —
+ * null when there aren't any, "Pee"/"Poop"/"Pee & poop" (union of moment
+ * types) otherwise, suffixed with a count when there's more than one. */
+export function pottyMomentsSummaryLabel(moments: PottyMoment[]): string | null {
+  if (!moments.length) return null;
+  const hasPee = moments.some((m) => m.type !== "poop");
+  const hasPoop = moments.some((m) => m.type !== "pee");
+  const label = hasPee && hasPoop ? "Pee & poop" : hasPee ? "Pee" : "Poop";
+  return moments.length > 1 ? `${label} ×${moments.length}` : label;
+}
 
 export const SPECIAL_EVENT_CATEGORY_LABEL: Record<SpecialEvent["category"], string> = {
   vet: "Vet visit",

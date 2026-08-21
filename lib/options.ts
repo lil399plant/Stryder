@@ -32,6 +32,15 @@ export const SUCCESS_OPTIONS: ChipOption[] = [
   { value: "accident", label: "Accident" },
 ];
 
+// A downstairs trip's potty moments reuse the potty type/success chips, but
+// narrower: "accident" isn't trip-scoped (see PottyMoment in lib/types.ts),
+// and "did-not-go" doesn't apply to a moment you'd only add if something
+// happened.
+export const POTTY_MOMENT_TYPE_OPTIONS: ChipOption[] = POTTY_TYPE_OPTIONS.filter((o) => o.value !== "accident");
+export const POTTY_MOMENT_SUCCESS_OPTIONS: ChipOption[] = SUCCESS_OPTIONS.filter(
+  (o) => o.value !== "did-not-go" && o.value !== "accident"
+);
+
 export const POOP_QUALITY_OPTIONS: ChipOption[] = [
   { value: "normal", label: "Normal" },
   { value: "soft", label: "Soft" },

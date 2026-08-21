@@ -5,6 +5,7 @@
 
 import type { AppData, PottyTag } from "./types";
 import { addDays, startOfDay, minutesBetween, isSameDay } from "./time";
+import { allPottyOccurrences } from "./potty";
 
 /** Anything this long or longer is treated as overnight sleep, not a waking
  * gap — without this, a whole night (often logged starting in the evening
@@ -32,8 +33,11 @@ export function lastNDays(n: number, now: Date = new Date()): DayBucket[] {
 /** One point per logged pee/poop/accident, positioned by time-of-day only
  * (0–24, fractional) — no date axis, since this is a single distribution
  * across all logged history, not a per-day breakdown. A "both" potty entry
- * becomes two points (one pee, one poop) at the same hour, since it really
- * is two events that happened together. */
+ * (or trip potty moment) becomes two points (one pee, one poop) at the same
+ * hour, since it really is two events that happened together. Pee/poop
+ * points come from allPottyOccurrences — standalone PottyEvents *and*
+ * potty moments logged as part of a downstairs trip; accidents are never
+ * trip-scoped, so they're read directly off pottyEvents. */
 export interface BathroomPoint {
   hour: number;
   type: "pee" | "poop" | "accident";
@@ -41,16 +45,14 @@ export interface BathroomPoint {
 
 export function bathroomTimingPoints(data: AppData): BathroomPoint[] {
   const points: BathroomPoint[] = [];
+  for (const o of allPottyOccurrences(data)) {
+    const hour = new Date(o.timestamp).getHours() + new Date(o.timestamp).getMinutes() / 60;
+    points.push({ hour, type: o.type });
+  }
   for (const p of data.pottyEvents) {
+    if (p.type !== "accident") continue;
     const hour = new Date(p.timestamp).getHours() + new Date(p.timestamp).getMinutes() / 60;
-    if (p.type === "pee") points.push({ hour, type: "pee" });
-    else if (p.type === "poop") points.push({ hour, type: "poop" });
-    else if (p.type === "both") {
-      points.push({ hour, type: "pee" });
-      points.push({ hour, type: "poop" });
-    } else if (p.type === "accident") {
-      points.push({ hour, type: "accident" });
-    }
+    points.push({ hour, type: "accident" });
   }
   return points;
 }
@@ -70,13 +72,16 @@ function isOvernightGap(from: Date, to: Date, gapMinutes: number): boolean {
   return from.getHours() >= 21 && to.getHours() < 9 && gapMinutes >= OVERNIGHT_SLEEP_MINUTES;
 }
 
-/** Average gap between consecutive occurrences of one potty type. A "both"
- * entry counts as an occurrence of *both* pee and poop — it's the same
- * event happening within moments of itself, not two separate schedules —
- * so it's included in each type's own sequence rather than only "both". */
+/** Average gap between consecutive occurrences of one potty type, across
+ * both standalone PottyEvents and downstairs-trip potty moments (see
+ * allPottyOccurrences). A "both" entry/moment counts as an occurrence of
+ * *both* pee and poop — it's the same event happening within moments of
+ * itself, not two separate schedules — so it's included in each type's own
+ * sequence rather than only "both". */
 function averageGapForType(data: AppData, type: "pee" | "poop"): PottyGapStat {
-  const matches = data.pottyEvents.filter((p) => p.type === type || p.type === "both");
-  const sorted = [...matches].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  const sorted = allPottyOccurrences(data)
+    .filter((o) => o.type === type)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   if (sorted.length < 2) return { avgMinutes: null, count: 0 };
   const gaps: number[] = [];
   for (let i = 1; i < sorted.length; i++) {
