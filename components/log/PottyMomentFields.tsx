@@ -1,17 +1,21 @@
 "use client";
 
 import { X } from "lucide-react";
-import type { PottyMoment } from "@/lib/types";
+import type { ISODateTime, PottyMoment } from "@/lib/types";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { ChoiceChips } from "@/components/ui/choice-chips";
 import { POTTY_MOMENT_TYPE_OPTIONS, POTTY_MOMENT_SUCCESS_OPTIONS, POOP_QUALITY_OPTIONS } from "@/lib/options";
 import { makeId } from "@/lib/id";
+import { formatDateTimeLocal, fromDateTimeLocal } from "@/lib/time";
 
 /** Default moment a downstairs trip's potty-moment list starts with, and
  * what "+ Add another" appends — sensible defaults the caregiver overrides
- * rather than blank/unset fields. */
-export function makeDefaultPottyMoment(): PottyMoment {
-  return { id: makeId(), type: "pee", success: "went-promptly" };
+ * rather than blank/unset fields. `defaultTimestamp` is normally the trip's
+ * current start time, so a freshly added moment lines up with the trip
+ * before the caregiver adjusts it for when it actually happened. */
+export function makeDefaultPottyMoment(defaultTimestamp: ISODateTime): PottyMoment {
+  return { id: makeId(), timestamp: defaultTimestamp, type: "pee", success: "went-promptly" };
 }
 
 interface PottyMomentFieldsProps {
@@ -27,21 +31,30 @@ export function PottyMomentFields({ moment, onChange, onRemove }: PottyMomentFie
     <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background/60 p-3.5">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1.5">
-          <Label>Type</Label>
-          <ChoiceChips
-            options={POTTY_MOMENT_TYPE_OPTIONS}
-            value={moment.type}
-            onChange={(v) => onChange({ type: v as PottyMoment["type"] })}
+          <Label>When</Label>
+          <Input
+            type="datetime-local"
+            value={formatDateTimeLocal(moment.timestamp)}
+            onChange={(e) => onChange({ timestamp: fromDateTimeLocal(e.target.value) })}
           />
         </div>
         <button
           type="button"
           onClick={onRemove}
           aria-label="Remove potty moment"
-          className="mt-1 shrink-0 rounded-full p-1 text-muted-foreground hover:bg-surface-raised"
+          className="mt-6 shrink-0 rounded-full p-1 text-muted-foreground hover:bg-surface-raised"
         >
           <X className="h-4 w-4" />
         </button>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Type</Label>
+        <ChoiceChips
+          options={POTTY_MOMENT_TYPE_OPTIONS}
+          value={moment.type}
+          onChange={(v) => onChange({ type: v as PottyMoment["type"] })}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">

@@ -80,7 +80,10 @@ export function useSyncStatus(): SyncStatus {
 function normalize(data: AppData): AppData {
   return {
     ...data,
-    downstairsTrips: (data.downstairsTrips ?? []).map((t) => ({ ...t, pottyMoments: t.pottyMoments ?? [] })),
+    downstairsTrips: (data.downstairsTrips ?? []).map((t) => ({
+      ...t,
+      pottyMoments: (t.pottyMoments ?? []).map((m) => ({ ...m, timestamp: m.timestamp ?? t.startTime })),
+    })),
     events: data.events ?? [],
     photos: data.photos ?? [],
     settings: {

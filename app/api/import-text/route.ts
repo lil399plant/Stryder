@@ -61,7 +61,7 @@ mealEvents: { timestamp, mealType: ${valuesList(MEAL_TYPE_OPTIONS)}, foodName: s
 
 napEvents: { startTime, endTime?, location?: ${valuesList(NAP_LOCATION_OPTIONS)} (omit if not stated — don't guess), settling?: ${valuesList(SETTLING_OPTIONS)}, quality?: ${valuesList(NAP_QUALITY_OPTIONS)}, notes?: string, caregiver }
 
-downstairsTrips: { startTime, endTime?, outdoorTripType?: ${valuesList(OUTDOOR_TRIP_OPTIONS)}, pottyMoments?: array of { type: ${valuesList(POTTY_MOMENT_TYPE_OPTIONS)}, success: ${valuesList(POTTY_MOMENT_SUCCESS_OPTIONS)}, poopQuality?: ${valuesList(POOP_QUALITY_OPTIONS)} } (only include if the text says pee/poop happened during this specific trip — otherwise omit), notes?: string, caregiver }
+downstairsTrips: { startTime, endTime?, outdoorTripType?: ${valuesList(OUTDOOR_TRIP_OPTIONS)}, pottyMoments?: array of { timestamp? (when during the trip it happened — omit if unclear, it'll default to the trip's startTime), type: ${valuesList(POTTY_MOMENT_TYPE_OPTIONS)}, success: ${valuesList(POTTY_MOMENT_SUCCESS_OPTIONS)}, poopQuality?: ${valuesList(POOP_QUALITY_OPTIONS)} } (only include if the text says pee/poop happened during this specific trip — otherwise omit), notes?: string, caregiver }
 
 events: { startTime, endTime?, category: ${valuesList(SPECIAL_EVENT_CATEGORY_OPTIONS)}, title?: string, notes?: string, caregiver }
 

@@ -145,11 +145,16 @@ function sanitizeNap(raw: any): NewEntry<NapEvent> | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sanitizePottyMoment(raw: any): PottyMoment | null {
+function sanitizePottyMoment(raw: any, tripStartTime: string): PottyMoment | null {
   if (!raw || typeof raw !== "object") return null;
   if (!POTTY_MOMENT_TYPES.has(raw.type) || !POTTY_MOMENT_SUCCESSES.has(raw.success)) return null;
 
-  const moment: PottyMoment = { id: makeId(), type: raw.type, success: raw.success };
+  const moment: PottyMoment = {
+    id: makeId(),
+    timestamp: isValidIso(raw.timestamp) ? raw.timestamp : tripStartTime,
+    type: raw.type,
+    success: raw.success,
+  };
   if (POOP_QUALITIES.has(raw.poopQuality)) moment.poopQuality = raw.poopQuality;
   return moment;
 }
@@ -163,7 +168,9 @@ function sanitizeDownstairs(raw: any): NewEntry<DownstairsEvent> | null {
     startTime: raw.startTime,
     caregiver: raw.caregiver,
     pottyMoments: Array.isArray(raw.pottyMoments)
-      ? raw.pottyMoments.map(sanitizePottyMoment).filter((m: PottyMoment | null): m is PottyMoment => m !== null)
+      ? raw.pottyMoments
+          .map((m: unknown) => sanitizePottyMoment(m, raw.startTime))
+          .filter((m: PottyMoment | null): m is PottyMoment => m !== null)
       : [],
   };
   if (isValidIso(raw.endTime)) entry.endTime = raw.endTime;
