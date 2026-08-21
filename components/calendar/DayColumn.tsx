@@ -2,7 +2,7 @@
 
 import type { TimelineItem } from "@/lib/timeline";
 import type { AppData, Caregiver } from "@/lib/types";
-import { getTimelineForDay } from "@/lib/timeline";
+import { getTimelineForDay, getPottyMomentItemsForDay } from "@/lib/timeline";
 import { isDurationItem, endTimeFor, isDayNoteItem } from "@/components/log/timelineVisual";
 import { DAY_HEIGHT, HOUR_HEIGHT, minutesSinceMidnight } from "@/lib/calendar-grid";
 import { DurationBlock, PointMarker } from "./EventBlock";
@@ -62,7 +62,13 @@ interface DayColumnProps {
 export function DayColumn({ date, data, caregiverName, onSelect, now, compact }: DayColumnProps) {
   const items = getTimelineForDay(data, date).filter((i) => !isDayNoteItem(i));
   const durationItems = items.filter(isDurationItem);
-  const pointItems = items.filter((i) => !isDurationItem(i));
+  // Each trip-embedded potty moment also gets its own point marker here,
+  // at its own timestamp — same visual as a standalone pee/poop entry —
+  // alongside the trip's own duration bar, which still spans the whole
+  // walk. Today's vertical list intentionally doesn't do this (see
+  // getPottyMomentItemsForDay) — the trip's row there already summarizes
+  // them, so adding separate rows would just duplicate it.
+  const pointItems = [...items.filter((i) => !isDurationItem(i)), ...getPottyMomentItemsForDay(data, date)];
 
   const laidDurations = layoutDurations(durationItems, now);
   const laidPoints = layoutPoints(pointItems);
