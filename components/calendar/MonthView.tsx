@@ -1,7 +1,7 @@
 "use client";
 
 import type { AppData, Caregiver } from "@/lib/types";
-import { getTimelineForDay, type TimelineItem } from "@/lib/timeline";
+import { getTimelineForDay, getPottyMomentItemsForDay, type TimelineItem } from "@/lib/timeline";
 import { getMonthGrid } from "@/lib/calendar-grid";
 import { isToday, isSameDay } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -82,7 +82,7 @@ export function MonthView({
           const dayNotes = dayItems.filter(isDayNoteItem);
           const items = dayItems
             .filter((i) => !isDayNoteItem(i))
-            .slice()
+            .concat(getPottyMomentItemsForDay(data, cell.date))
             .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
           const overflow = items.length - MAX_CHIPS;
 

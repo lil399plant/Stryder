@@ -1,5 +1,6 @@
 import type {
   AppData,
+  Caregiver,
   DownstairsEvent,
   IncidentEvent,
   MealEvent,
@@ -16,6 +17,19 @@ export type TimelineItem =
   | { kind: "meal"; time: string; data: MealEvent }
   | { kind: "nap"; time: string; data: NapEvent }
   | { kind: "downstairs"; time: string; data: DownstairsEvent }
+  /** A pee/poop moment logged as part of a downstairs trip — a synthetic
+   * point-in-time item, not its own stored entry (see PottyMoment in
+   * lib/types.ts). Carries `trip` alongside `data` (the moment itself) so
+   * it can render exactly like a standalone "potty" point on the calendar
+   * (see components/log/timelineVisual.tsx) while still opening the parent
+   * trip for editing. `data.caregiver` is borrowed from the trip purely so
+   * the generic caregiver-avatar/tooltip code that reads `item.data.caregiver`
+   * across every kind doesn't need a special case for this one. Deliberately
+   * only surfaced by getPottyMomentItemsForDay (used by the calendar), not
+   * by getAllTimelineItems/getTimelineForDay — Today's vertical list already
+   * shows the trip itself with a potty summary, so folding these in there
+   * too would just duplicate it. */
+  | { kind: "potty-moment"; time: string; data: PottyMoment & { caregiver: Caregiver }; trip: DownstairsEvent }
   | { kind: "event"; time: string; data: SpecialEvent }
   | { kind: "incident"; time: string; data: IncidentEvent }
   | { kind: "training"; time: string; data: TrainingSession };
@@ -61,6 +75,21 @@ export function getTimelineForDay(data: AppData, date: Date): TimelineItem[] {
   }
 
   return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+}
+
+/** One synthetic "potty-moment" item per pee/poop logged inside a downstairs
+ * trip that happened on `date` — see the TimelineItem union above for why
+ * this is separate from getTimelineForDay rather than folded into it. */
+export function getPottyMomentItemsForDay(data: AppData, date: Date): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  for (const trip of data.downstairsTrips) {
+    for (const m of trip.pottyMoments ?? []) {
+      if (isSameDay(new Date(m.timestamp), date)) {
+        items.push({ kind: "potty-moment", time: m.timestamp, data: { ...m, caregiver: trip.caregiver }, trip });
+      }
+    }
+  }
+  return items;
 }
 
 export const POTTY_TYPE_LABEL: Record<PottyEvent["type"], string> = {

@@ -25,6 +25,9 @@ const TITLES: Record<TimelineItem["kind"], string> = {
   meal: "Edit meal",
   nap: "Edit nap",
   downstairs: "Edit downstairs trip",
+  // Opens the same trip editor as clicking the trip itself — a potty
+  // moment isn't its own stored entry, see PottyMoment in lib/types.ts.
+  "potty-moment": "Edit downstairs trip",
   event: "Edit event",
   incident: "Edit note",
   training: "Training session",
@@ -35,6 +38,7 @@ const DELETED_LABELS: Record<TimelineItem["kind"], string> = {
   meal: "Meal",
   nap: "Nap",
   downstairs: "Downstairs trip",
+  "potty-moment": "Downstairs trip",
   event: "Event",
   incident: "Note",
   training: "Training session",
@@ -74,6 +78,16 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
       case "downstairs": {
         const rest = withoutIdAndKind(item.data);
         store.deleteDownstairsTrip(item.data.id);
+        showToast("Downstairs trip deleted", () => store.addDownstairsTrip(rest));
+        break;
+      }
+      case "potty-moment": {
+        // Deletes the whole containing trip — same as the "downstairs"
+        // case above — since a potty moment only exists as part of one.
+        // To remove just this moment, open the trip and use its own
+        // remove button instead.
+        const rest = withoutIdAndKind(item.trip);
+        store.deleteDownstairsTrip(item.trip.id);
         showToast("Downstairs trip deleted", () => store.addDownstairsTrip(rest));
         break;
       }
@@ -150,6 +164,18 @@ export function EntryEditSheet({ item, onClose }: EntryEditSheetProps) {
           caregivers={caregivers}
           onSubmit={(values: DownstairsFormValues) => {
             store.updateDownstairsTrip(item.data.id, values);
+            showToast("Downstairs trip updated");
+            onClose();
+          }}
+          onCancel={onClose}
+        />
+      )}
+      {item.kind === "potty-moment" && (
+        <DownstairsForm
+          initial={item.trip}
+          caregivers={caregivers}
+          onSubmit={(values: DownstairsFormValues) => {
+            store.updateDownstairsTrip(item.trip.id, values);
             showToast("Downstairs trip updated");
             onClose();
           }}

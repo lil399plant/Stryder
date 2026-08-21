@@ -15,6 +15,7 @@ import {
   POTTY_TYPE_LABEL,
   POTTY_LOCATION_LABEL,
   SUCCESS_LABEL,
+  POOP_QUALITY_LABEL,
   MEAL_TYPE_LABEL,
   APPETITE_LABEL,
   NAP_LOCATION_LABEL,
@@ -35,6 +36,7 @@ export const KIND_STYLES: Record<TimelineItem["kind"], { bg: string; fg: string;
   meal: { bg: "bg-tan-soft", fg: "text-tan-soft-foreground", dot: "bg-tan" },
   nap: { bg: "bg-forest-soft", fg: "text-forest-soft-foreground", dot: "bg-forest" },
   downstairs: { bg: "bg-blue-soft", fg: "text-blue-soft-foreground", dot: "bg-blue" },
+  "potty-moment": { bg: "bg-blue-soft", fg: "text-blue-soft-foreground", dot: "bg-blue" },
   event: { bg: "bg-tan-soft", fg: "text-tan-soft-foreground", dot: "bg-tan" },
   incident: { bg: "bg-surface-raised", fg: "text-muted-foreground", dot: "bg-muted-foreground" },
   training: { bg: "bg-surface-raised", fg: "text-muted-foreground", dot: "bg-muted-foreground" },
@@ -46,11 +48,11 @@ export const KIND_STYLES: Record<TimelineItem["kind"], { bg: string; fg: string;
  * the specific sub-types below are overridden — meal enrichment and other
  * incident categories keep the default look. */
 export function emojiFor(item: TimelineItem): string | null {
-  if (item.kind === "potty") {
+  if (item.kind === "potty" || item.kind === "potty-moment") {
     if (item.data.type === "pee") return "🍋";
     if (item.data.type === "poop") return "💩";
     if (item.data.type === "both") return "🍋💩";
-    if (item.data.type === "accident") return "❌";
+    if (item.kind === "potty" && item.data.type === "accident") return "❌";
     return null;
   }
   if (item.kind === "downstairs") {
@@ -144,6 +146,7 @@ export function IconFor({ item, className }: { item: TimelineItem; className?: s
   }
   switch (item.kind) {
     case "potty":
+    case "potty-moment":
       return <Droplets className={cls} />;
     case "meal":
       return <UtensilsCrossed className={cls} />;
@@ -167,6 +170,7 @@ export function IconFor({ item, className }: { item: TimelineItem; className?: s
 export function titleFor(item: TimelineItem): string {
   switch (item.kind) {
     case "potty":
+    case "potty-moment":
       return POTTY_TYPE_LABEL[item.data.type];
     case "meal":
       return MEAL_TYPE_LABEL[item.data.mealType];
@@ -191,6 +195,11 @@ export function subtitleFor(item: TimelineItem): string {
         return parts.length ? parts.join(" · ") : "No details yet";
       }
       return `${POTTY_LOCATION_LABEL[item.data.location]} · ${SUCCESS_LABEL[item.data.success]}`;
+    }
+    case "potty-moment": {
+      const parts = [SUCCESS_LABEL[item.data.success]];
+      if (item.data.poopQuality) parts.push(POOP_QUALITY_LABEL[item.data.poopQuality]);
+      return parts.join(" · ");
     }
     case "meal":
       return `${item.data.foodName || "—"} · ${APPETITE_LABEL[item.data.appetite]}`;
