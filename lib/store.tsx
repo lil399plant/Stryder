@@ -6,6 +6,7 @@ import type {
   AppSettings,
   Caregiver,
   CueEntry,
+  DogFriend,
   DownstairsEvent,
   GrowthPhoto,
   HandoffState,
@@ -417,6 +418,18 @@ function deleteCue(id: string) {
   mutate((d) => ({ ...d, cues: d.cues.filter((c) => c.id !== id) }));
 }
 
+function addFriend(f: Omit<DogFriend, "id">): string {
+  const id = makeId();
+  mutate((d) => ({ ...d, friends: [...d.friends, { ...f, id }] }));
+  return id;
+}
+function updateFriend(id: string, patch: Partial<DogFriend>) {
+  mutate((d) => ({ ...d, friends: d.friends.map((f) => (f.id === id ? { ...f, ...patch } : f)) }));
+}
+function deleteFriend(id: string) {
+  mutate((d) => ({ ...d, friends: d.friends.filter((f) => f.id !== id) }));
+}
+
 function addPhoto(p: Omit<GrowthPhoto, "id">): string {
   const id = makeId();
   mutate((d) => ({ ...d, photos: [...d.photos, { ...p, id }] }));
@@ -535,6 +548,9 @@ const actions = {
   addCue,
   updateCue,
   deleteCue,
+  addFriend,
+  updateFriend,
+  deleteFriend,
   addPhoto,
   updatePhoto,
   deletePhoto,

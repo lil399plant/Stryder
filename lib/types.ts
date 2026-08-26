@@ -254,6 +254,9 @@ export interface CueEntry {
   cue: string;
   meaning: string;
   usedBy: Caregiver[];
+  /** How reliably Stryder responds to this cue, 1 (just introduced) to 5
+   * (fully reliable). Undefined means not yet rated. */
+  progress?: 1 | 2 | 3 | 4 | 5;
 }
 
 /** Freeform notes on what Stryder prefers — not a log, just a running
@@ -261,6 +264,21 @@ export interface CueEntry {
 export interface TreatPreferences {
   chews: string;
   treats: string;
+}
+
+/** A dog Stryder has met — a running index caregivers can jot notes on and
+ * check owner contact info from later (Training > Friends). */
+export interface DogFriend {
+  id: string;
+  name: string;
+  age: string;
+  /** Breed and coat/color, kept as one freeform field per how caregivers
+   * actually describe a dog ("Golden retriever, cream coat"). */
+  breedAndColor: string;
+  personality: string;
+  meetingOccasion: string;
+  ownerName: string;
+  ownerPhone: string;
 }
 
 // ---------- Health ----------
@@ -389,6 +407,7 @@ export interface AppData {
   trainingSessions: TrainingSession[];
   cues: CueEntry[];
   treatPreferences: TreatPreferences;
+  friends: DogFriend[];
   vaccines: VaccineRecord[];
   insurance: InsuranceInfo;
   health: HealthProfile;

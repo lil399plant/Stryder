@@ -6,9 +6,42 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MultiChoiceChips } from "@/components/ui/choice-chips";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useSyncedState } from "@/lib/useSyncedState";
 import type { CueEntry } from "@/lib/types";
+
+const PROGRESS_LEVELS = [1, 2, 3, 4, 5] as const;
+
+function ProgressScale({
+  value,
+  onChange,
+}: {
+  value: number | undefined;
+  onChange: (level: 1 | 2 | 3 | 4 | 5) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5" role="group" aria-label="Progress, 1 to 5">
+      {PROGRESS_LEVELS.map((level) => (
+        <button
+          key={level}
+          type="button"
+          onClick={() => onChange(level)}
+          aria-label={`Set progress to ${level}`}
+          aria-pressed={value === level}
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[13px] font-medium transition-colors active:scale-[0.98]",
+            value !== undefined && level <= value
+              ? "border-forest bg-forest-soft text-forest-soft-foreground"
+              : "border-border-strong bg-surface-raised text-muted-foreground hover:bg-tan-soft/30"
+          )}
+        >
+          {level}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function CueRow({ cue }: { cue: CueEntry }) {
   const { updateCue, deleteCue, data } = useStore();
@@ -45,6 +78,10 @@ function CueRow({ cue }: { cue: CueEntry }) {
           >
             <Trash2 className="h-4 w-4" />
           </button>
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
+          <span className="text-[13px] font-medium text-muted-foreground">Progress</span>
+          <ProgressScale value={cue.progress} onChange={(level) => updateCue(cue.id, { progress: level })} />
         </div>
       </CardContent>
     </Card>
