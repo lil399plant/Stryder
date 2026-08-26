@@ -89,6 +89,7 @@ function normalize(data: AppData): AppData {
     events: data.events ?? [],
     photos: data.photos ?? [],
     treatPreferences: data.treatPreferences ?? { chews: "", treats: "" },
+    friends: data.friends ?? [],
     settings: {
       ...data.settings,
       nudgeThresholds: data.settings?.nudgeThresholds ?? { ...DEFAULT_NUDGE_THRESHOLDS },
