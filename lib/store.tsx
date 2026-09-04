@@ -17,6 +17,7 @@ import type {
   NapEvent,
   PottyEvent,
   PuppyProfile,
+  ScheduledMealTimes,
   SpecialEvent,
   TrainingPlan,
   TrainingSession,
@@ -89,6 +90,7 @@ function normalize(data: AppData): AppData {
     events: data.events ?? [],
     photos: data.photos ?? [],
     treatPreferences: data.treatPreferences ?? { chews: "", treats: "" },
+    scheduledMeals: data.scheduledMeals ?? {},
     friends: data.friends ?? [],
     settings: {
       ...data.settings,
@@ -137,6 +139,12 @@ function ensureInitialized() {
  * no-op.
  */
 async function pullFromServer() {
+  // Snapshot what we had when this pull started. The fetch below is async,
+  // so the user can log entries (mutate() -> a new currentData) before it
+  // resolves; without this, treating the server's response as the whole
+  // truth would silently discard whatever was logged in that window — see
+  // the incident that prompted this fix.
+  const baseSnapshot = currentData;
   try {
     const res = await fetch(API_ENDPOINT, { cache: "no-store" });
     if (!res.ok) throw new Error(String(res.status));
@@ -144,10 +152,14 @@ async function pullFromServer() {
     setSyncStatus({ checked: true, configured: body.configured, lastError: false });
     if (!body.configured) return;
     if (body.data) {
-      // Server is the shared source of truth once it has something saved.
-      currentData = normalize(body.data);
-      lastSyncedData = currentData;
-      saveToStorage(currentData);
+      // Merge rather than overwrite: `currentData` may have moved on (new
+      // local entries) since `baseSnapshot` was captured above, exactly the
+      // three-way merge pushOnce does before a save.
+      const serverData = normalize(body.data);
+      const merged = baseSnapshot ? mergeAppData(baseSnapshot, currentData ?? serverData, serverData) : serverData;
+      currentData = merged;
+      lastSyncedData = merged;
+      saveToStorage(merged);
       notify();
     } else if (currentData) {
       // Supabase is linked but empty (first run) — seed it from what we have.
@@ -464,6 +476,9 @@ function updateHealthProfile(patch: Partial<HealthProfile>) {
 function updateTreatPreferences(patch: Partial<TreatPreferences>) {
   mutate((d) => ({ ...d, treatPreferences: { ...d.treatPreferences, ...patch } }));
 }
+function updateScheduledMeals(patch: Partial<ScheduledMealTimes>) {
+  mutate((d) => ({ ...d, scheduledMeals: { ...d.scheduledMeals, ...patch } }));
+}
 function updatePuppy(patch: Partial<PuppyProfile>) {
   mutate((d) => ({ ...d, puppy: { ...d.puppy, ...patch } }));
 }
@@ -561,6 +576,7 @@ const actions = {
   updateInsurance,
   updateHealthProfile,
   updateTreatPreferences,
+  updateScheduledMeals,
   updatePuppy,
   updateCaregiverName,
   setHandoff,
