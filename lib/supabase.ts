@@ -14,6 +14,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export const SUPABASE_TABLE = "app_data";
 export const SUPABASE_ROW_ID = "stryder";
 
+// A rolling log of past app_data snapshots — see .env.example for the
+// one-time SQL to create it. app_data itself is a single row that every
+// save upserts over, so it has no history of its own; this table is the
+// disaster-recovery backstop (an incident prompted this — see AboutSection
+// and lib/store.tsx's looksLikeDataLoss). app/api/data/route.ts inserts one
+// row here on every successful save and prunes anything older than
+// APP_DATA_HISTORY_RETENTION_DAYS. Best-effort: a failure writing here
+// never fails the save itself.
+export const APP_DATA_HISTORY_TABLE = "app_data_history";
+export const APP_DATA_HISTORY_RETENTION_DAYS = 90;
+
 // Push notification plumbing — see .env.example for the one-time SQL to
 // create these two tables. Deliberately NOT part of the app_data JSON blob:
 // subscriptions and notification dedup state are per-device infrastructure,

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Download, Upload, RotateCcw, DatabaseZap, CloudCheck, CloudOff, CloudAlert } from "lucide-react";
+import { Download, Upload, RotateCcw, DatabaseZap, CloudCheck, CloudOff, CloudAlert, TriangleAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,19 @@ export function DataSection() {
         <CardTitle>Data export &amp; import</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 pt-0">
+        {syncStatus.possibleDataLoss && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-concern/30 bg-concern-soft px-3.5 py-3">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-concern" />
+            <div>
+              <Badge variant="concern">Sync paused</Badge>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-concern-soft-foreground">
+                A sync just now would have removed a bunch of logged entries, so it was blocked
+                instead of applied — nothing was lost. This shouldn&apos;t normally happen; if it
+                keeps showing up, export a backup below and get in touch about it.
+              </p>
+            </div>
+          </div>
+        )}
         {syncStatus.configured ? (
           <div className="flex items-start gap-2.5 rounded-xl border border-forest/20 bg-forest-soft px-3.5 py-3">
             <CloudCheck className="mt-0.5 h-4 w-4 shrink-0 text-forest-soft-foreground/70" />

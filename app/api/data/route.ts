@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSupabase, SUPABASE_TABLE, SUPABASE_ROW_ID } from "@/lib/supabase";
+import {
+  getSupabase,
+  SUPABASE_TABLE,
+  SUPABASE_ROW_ID,
+  APP_DATA_HISTORY_TABLE,
+  APP_DATA_HISTORY_RETENTION_DAYS,
+} from "@/lib/supabase";
 import type { AppData } from "@/lib/types";
 
 // Single shared-household record — see lib/supabase.ts. Every write
@@ -45,10 +51,30 @@ export async function PUT(request: Request) {
       .from(SUPABASE_TABLE)
       .upsert({ id: SUPABASE_ROW_ID, data: body, updated_at: new Date().toISOString() });
     if (error) throw error;
+    void snapshotHistory(body); // best-effort, doesn't block or fail the save
     return NextResponse.json({ configured: true, saved: true });
   } catch (err) {
     console.error("Supabase write failed", err);
     return NextResponse.json({ configured: true, saved: false, error: "write-failed" }, { status: 502 });
+  }
+}
+
+/** Appends a snapshot to app_data_history and prunes anything older than
+ * the retention window — see lib/supabase.ts. Swallows its own errors (most
+ * likely: the table hasn't been created yet, see .env.example) so a
+ * disaster-recovery backstop failing never takes the actual save down with
+ * it. */
+async function snapshotHistory(data: AppData) {
+  const supabase = getSupabase();
+  if (!supabase) return;
+  try {
+    const { error: insertError } = await supabase.from(APP_DATA_HISTORY_TABLE).insert({ data });
+    if (insertError) throw insertError;
+    const cutoff = new Date(Date.now() - APP_DATA_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const { error: pruneError } = await supabase.from(APP_DATA_HISTORY_TABLE).delete().lt("created_at", cutoff);
+    if (pruneError) throw pruneError;
+  } catch (err) {
+    console.error("app_data_history snapshot failed", err);
   }
 }
 

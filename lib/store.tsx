@@ -17,7 +17,6 @@ import type {
   NapEvent,
   PottyEvent,
   PuppyProfile,
-  ScheduledMealTimes,
   SpecialEvent,
   TrainingPlan,
   TrainingSession,
@@ -56,8 +55,8 @@ const listeners = new Set<() => void>();
 
 // ---- Shared-storage connection status (for the "Data" section in More) ----
 
-export type SyncStatus = { checked: boolean; configured: boolean; lastError: boolean };
-let syncStatus: SyncStatus = { checked: false, configured: false, lastError: false };
+export type SyncStatus = { checked: boolean; configured: boolean; lastError: boolean; possibleDataLoss: boolean };
+let syncStatus: SyncStatus = { checked: false, configured: false, lastError: false, possibleDataLoss: false };
 const syncListeners = new Set<() => void>();
 
 function setSyncStatus(next: Partial<SyncStatus>) {
@@ -72,10 +71,41 @@ function getSyncStatusSnapshot() {
   return syncStatus;
 }
 function getSyncStatusServerSnapshot(): SyncStatus {
-  return { checked: false, configured: false, lastError: false };
+  return { checked: false, configured: false, lastError: false, possibleDataLoss: false };
 }
 export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore(subscribeSyncStatus, getSyncStatusSnapshot, getSyncStatusServerSnapshot);
+}
+
+/** Total count of every id-keyed log entry — a coarse signal for the
+ * data-loss guardrail below, nothing more precise is needed. */
+function countEntries(d: AppData): number {
+  return (
+    d.pottyEvents.length +
+    d.mealEvents.length +
+    d.napEvents.length +
+    d.downstairsTrips.length +
+    d.events.length +
+    d.incidentEvents.length +
+    d.trainingSessions.length +
+    d.cues.length
+  );
+}
+
+/** Tripwire against a sync step silently discarding logged entries — the
+ * exact shape of bug this guards against: an earlier version of
+ * pullFromServer overwrote currentData with the server's snapshot wholesale
+ * instead of merging (see git history). mergeAppData's mergeArrayById
+ * always keeps every item that was in `local`, so a *correct* merge can't
+ * trigger this — this exists to catch a future regression (or a bad
+ * input) before it reaches localStorage or the server, not to fire in
+ * normal use. Flags a drop that's both more than a handful of entries and
+ * more than 5% of what was there, so an ordinary deletion or two never
+ * trips it. */
+function looksLikeDataLoss(before: AppData, after: AppData): boolean {
+  const beforeCount = countEntries(before);
+  const droppedCount = beforeCount - countEntries(after);
+  return droppedCount > 3 && droppedCount > beforeCount * 0.05;
 }
 
 /** Fills in fields added after a user's data was first saved, so older
@@ -90,7 +120,6 @@ function normalize(data: AppData): AppData {
     events: data.events ?? [],
     photos: data.photos ?? [],
     treatPreferences: data.treatPreferences ?? { chews: "", treats: "" },
-    scheduledMeals: data.scheduledMeals ?? {},
     friends: data.friends ?? [],
     settings: {
       ...data.settings,
@@ -156,10 +185,22 @@ async function pullFromServer() {
       // local entries) since `baseSnapshot` was captured above, exactly the
       // three-way merge pushOnce does before a save.
       const serverData = normalize(body.data);
-      const merged = baseSnapshot ? mergeAppData(baseSnapshot, currentData ?? serverData, serverData) : serverData;
+      const priorLocal = currentData ?? serverData;
+      const merged = baseSnapshot ? mergeAppData(baseSnapshot, priorLocal, serverData) : serverData;
+      if (looksLikeDataLoss(priorLocal, merged)) {
+        // Refuse to apply — see looksLikeDataLoss. Leaves currentData as it
+        // was; the next mutation's push will retry this same fetch+merge.
+        console.error("pullFromServer: merge would drop entries, refusing to apply", {
+          before: countEntries(priorLocal),
+          after: countEntries(merged),
+        });
+        setSyncStatus({ possibleDataLoss: true });
+        return;
+      }
       currentData = merged;
       lastSyncedData = merged;
       saveToStorage(merged);
+      setSyncStatus({ possibleDataLoss: false });
       notify();
     } else if (currentData) {
       // Supabase is linked but empty (first run) — seed it from what we have.
@@ -217,6 +258,19 @@ async function pushOnce() {
     const toSave =
       getBody.data && lastSyncedData ? mergeAppData(lastSyncedData, localSnapshot, normalize(getBody.data)) : localSnapshot;
 
+    if (looksLikeDataLoss(localSnapshot, toSave)) {
+      // Refuse to push — see looksLikeDataLoss. Saving `toSave` here would
+      // propagate the loss to the server, exactly the failure mode this
+      // guards against. Leaves currentData/lastSyncedData untouched; the
+      // next mutation retries this same fetch+merge.
+      console.error("pushOnce: merge would drop entries, refusing to save", {
+        before: countEntries(localSnapshot),
+        after: countEntries(toSave),
+      });
+      setSyncStatus({ possibleDataLoss: true });
+      return;
+    }
+
     const putRes = await fetch(API_ENDPOINT, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -229,6 +283,7 @@ async function pushOnce() {
       currentData = toSave;
       lastSyncedData = toSave;
       saveToStorage(toSave);
+      setSyncStatus({ possibleDataLoss: false });
       notify();
     }
   } catch {
@@ -476,9 +531,6 @@ function updateHealthProfile(patch: Partial<HealthProfile>) {
 function updateTreatPreferences(patch: Partial<TreatPreferences>) {
   mutate((d) => ({ ...d, treatPreferences: { ...d.treatPreferences, ...patch } }));
 }
-function updateScheduledMeals(patch: Partial<ScheduledMealTimes>) {
-  mutate((d) => ({ ...d, scheduledMeals: { ...d.scheduledMeals, ...patch } }));
-}
 function updatePuppy(patch: Partial<PuppyProfile>) {
   mutate((d) => ({ ...d, puppy: { ...d.puppy, ...patch } }));
 }
@@ -576,7 +628,6 @@ const actions = {
   updateInsurance,
   updateHealthProfile,
   updateTreatPreferences,
-  updateScheduledMeals,
   updatePuppy,
   updateCaregiverName,
   setHandoff,

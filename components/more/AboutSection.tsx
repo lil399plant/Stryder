@@ -44,8 +44,12 @@ export function AboutSection() {
               before either refreshes, whichever save lands last wins for that one field.
             </p>
             <p>
-              It&apos;s still worth keeping an occasional backup — use Export/Import in Data to
-              save or restore a copy of the log independent of Supabase.
+              Every save also drops a timestamped snapshot into a separate history table on
+              Supabase (kept for 90 days), and a save that looks like it would erase a lot of
+              entries at once gets blocked automatically rather than applied — so a bug elsewhere
+              in the app has something to recover from instead of just overwriting the log. That
+              said, it&apos;s still worth keeping an occasional backup of your own — use
+              Export/Import in Data to save or restore a copy of the log independent of Supabase.
             </p>
           </>
         ) : (
