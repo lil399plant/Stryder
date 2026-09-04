@@ -44,3 +44,4 @@ next-env.d.ts
 # raw source photos (personal working files, not served by the app —
 # only derived assets under public/ are committed)
 /photos
+.gstack/
