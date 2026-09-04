@@ -82,6 +82,7 @@ export function mergeAppData(base: AppData, local: AppData, server: AppData): Ap
     trainingSessions: mergeArrayById(base.trainingSessions, local.trainingSessions, server.trainingSessions),
     cues: mergeArrayById(base.cues, local.cues, server.cues),
     treatPreferences: mergeSingleton(base.treatPreferences, local.treatPreferences, server.treatPreferences),
+    scheduledMeals: mergeSingleton(base.scheduledMeals, local.scheduledMeals, server.scheduledMeals),
     friends: mergeArrayById(base.friends, local.friends, server.friends),
     vaccines: mergeArrayById(base.vaccines, local.vaccines, server.vaccines),
     insurance: mergeSingleton(base.insurance, local.insurance, server.insurance),

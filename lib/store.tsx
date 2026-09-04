@@ -17,6 +17,7 @@ import type {
   NapEvent,
   PottyEvent,
   PuppyProfile,
+  ScheduledMealTimes,
   SpecialEvent,
   TrainingPlan,
   TrainingSession,
@@ -120,6 +121,7 @@ function normalize(data: AppData): AppData {
     events: data.events ?? [],
     photos: data.photos ?? [],
     treatPreferences: data.treatPreferences ?? { chews: "", treats: "" },
+    scheduledMeals: data.scheduledMeals ?? {},
     friends: data.friends ?? [],
     settings: {
       ...data.settings,
@@ -531,6 +533,9 @@ function updateHealthProfile(patch: Partial<HealthProfile>) {
 function updateTreatPreferences(patch: Partial<TreatPreferences>) {
   mutate((d) => ({ ...d, treatPreferences: { ...d.treatPreferences, ...patch } }));
 }
+function updateScheduledMeals(patch: Partial<ScheduledMealTimes>) {
+  mutate((d) => ({ ...d, scheduledMeals: { ...d.scheduledMeals, ...patch } }));
+}
 function updatePuppy(patch: Partial<PuppyProfile>) {
   mutate((d) => ({ ...d, puppy: { ...d.puppy, ...patch } }));
 }
@@ -628,6 +633,7 @@ const actions = {
   updateInsurance,
   updateHealthProfile,
   updateTreatPreferences,
+  updateScheduledMeals,
   updatePuppy,
   updateCaregiverName,
   setHandoff,

@@ -4,10 +4,11 @@ import { getSupabase, SUPABASE_TABLE, SUPABASE_ROW_ID, NOTIFIED_NUDGES_TABLE } f
 import { sendPush } from "@/lib/push-server";
 import { computeNudges } from "@/lib/rules";
 import { SPECIAL_EVENT_CATEGORY_LABEL } from "@/lib/timeline";
-import { formatClock } from "@/lib/time";
-import type { AppData } from "@/lib/types";
+import { formatClock, formatHHMM } from "@/lib/time";
+import { HOUSEHOLD_TIME_ZONE, localDateStringInZone, zonedDateTime } from "@/lib/timezone";
+import type { AppData, ScheduledMealTimes } from "@/lib/types";
 
-// Two independent kinds of scheduled push, both driven by the same
+// Three independent kinds of scheduled push, all driven by the same
 // external timer hitting this one route (Vercel's own Cron only runs
 // once/day on the free Hobby plan, so per .env.example this is meant to be
 // called by a free service like https://cron-job.org every 15-30 minutes,
@@ -28,9 +29,25 @@ import type { AppData } from "@/lib/types";
 //    <event id>`) and never need to "resolve and re-fire" — once sent,
 //    sent for good — so they're excluded from the resolved-nudge cleanup
 //    below, and cleaned up separately once the event itself has passed.
+//
+// 3. Scheduled-meal reminders (Training > Scheduled meals, lib/types.ts's
+//    ScheduledMealTimes) — a caregiver-set daily "HH:MM" per meal slot
+//    gets a push to whoever's on duty 10 minutes before it, every day it
+//    recurs. Dedup is day-scoped (id `meal-reminder:<slot>:<local date>`)
+//    rather than sent-once-ever like event reminders, since the same slot
+//    fires again tomorrow. See lib/timezone.ts for why converting a plain
+//    "HH:MM" into a real instant needs a named timezone at all here.
 
 const EVENT_REMINDER_PREFIX = "event-reminder:";
 const EVENT_REMINDER_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+const MEAL_REMINDER_PREFIX = "meal-reminder:";
+const MEAL_REMINDER_LEAD_MS = 10 * 60 * 1000; // 10 minutes
+const MEAL_SLOTS: { key: keyof ScheduledMealTimes; label: string }[] = [
+  { key: "breakfast", label: "Breakfast" },
+  { key: "lunch", label: "Lunch" },
+  { key: "dinner", label: "Dinner" },
+];
 
 /** Atomically claims an id via a plain insert (not upsert) — the table's
  * primary key does the locking for us, so two overlapping cron runs can't
@@ -72,7 +89,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "read-failed" }, { status: 502 });
   }
   const appData = row?.data as AppData | undefined;
-  if (!appData) return NextResponse.json({ nudges: { checked: 0, sent: 0 }, eventReminders: { checked: 0, sent: 0 } });
+  if (!appData)
+    return NextResponse.json({
+      nudges: { checked: 0, sent: 0 },
+      eventReminders: { checked: 0, sent: 0 },
+      mealReminders: { checked: 0, sent: 0 },
+    });
 
   const now = new Date();
 
@@ -151,9 +173,44 @@ export async function GET(request: Request) {
     await supabase.from(NOTIFIED_NUDGES_TABLE).delete().in("id", pastEventReminderIds);
   }
 
+  // ---- 3. Scheduled-meal reminders — on-duty caregiver, 10 min before, once/day ----
+
+  const todayLocal = localDateStringInZone(now, HOUSEHOLD_TIME_ZONE);
+  const dueMealSlots = MEAL_SLOTS.filter(({ key }) => {
+    const timeStr = appData.scheduledMeals?.[key];
+    if (!timeStr) return false;
+    const msUntil = zonedDateTime(todayLocal, timeStr, HOUSEHOLD_TIME_ZONE).getTime() - now.getTime();
+    return msUntil > 0 && msUntil <= MEAL_REMINDER_LEAD_MS;
+  });
+
+  let mealRemindersSent = 0;
+  for (const slot of dueMealSlots) {
+    const id = `${MEAL_REMINDER_PREFIX}${slot.key}:${todayLocal}`;
+    if (alreadyNotified.has(id)) continue;
+    if (!(await claim(supabase, id))) continue; // another run already has this one
+    const timeStr = appData.scheduledMeals[slot.key] as string;
+    const result = await sendPush(
+      { title: `${slot.label} in 10 minutes`, body: `Scheduled for ${formatHHMM(timeStr)}.`, url: "/today" },
+      { onlyCaregiver: appData.handoff.onDuty }
+    );
+    mealRemindersSent += result.sent;
+    if (result.sent === 0) await release(supabase, id); // nobody subscribed yet — retry next tick
+  }
+
+  // Tidy up meal-reminder rows from a previous day — today's slots recur
+  // tomorrow under a new (different-date) id, so yesterday's claim is done
+  // being useful and would otherwise accumulate forever.
+  const staleMealReminderIds = [...alreadyNotified].filter(
+    (id) => id.startsWith(MEAL_REMINDER_PREFIX) && !id.endsWith(`:${todayLocal}`)
+  );
+  if (staleMealReminderIds.length > 0) {
+    await supabase.from(NOTIFIED_NUDGES_TABLE).delete().in("id", staleMealReminderIds);
+  }
+
   return NextResponse.json({
     nudges: { checked: nudges.length, newlyActive: nudgesToSend.length, sent: nudgesSent },
     eventReminders: { checked: dueEvents.length, sent: eventRemindersSent },
+    mealReminders: { checked: dueMealSlots.length, sent: mealRemindersSent },
   });
 }
 

@@ -49,6 +49,17 @@ export function formatClock(iso: string): string {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+/** Formats a bare "HH:MM" 24-hour wall-clock string (e.g. from
+ * ScheduledMealTimes, no date/timezone attached) as "7:30 AM" — distinct
+ * from formatClock, which needs a real Date/ISO instant and renders in
+ * whatever timezone it's called from. */
+export function formatHHMM(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = ((h + 11) % 12) + 1;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 export function formatDateTimeLocal(iso: string): string {
   // value for <input type="datetime-local">
   const d = new Date(iso);

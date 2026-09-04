@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpenText, Bone, PawPrint, Plus } from "lucide-react";
+import { AlarmClock, BookOpenText, Bone, PawPrint, Plus } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { makeId } from "@/lib/id";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,17 @@ export default function TrainingPage() {
         <div className="flex-1">
           <p className="text-[14px] font-medium">Friends</p>
           <p className="text-[12px] text-muted-foreground">Dogs he&apos;s met &amp; their owners</p>
+        </div>
+      </Link>
+
+      <Link
+        href="/training/scheduled-meals"
+        className="mb-4 flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 hover:bg-tan-soft/15"
+      >
+        <AlarmClock className="h-4.5 w-4.5 text-muted-foreground" />
+        <div className="flex-1">
+          <p className="text-[14px] font-medium">Scheduled meals</p>
+          <p className="text-[12px] text-muted-foreground">Daily times, with a reminder 10 min before</p>
         </div>
       </Link>
 

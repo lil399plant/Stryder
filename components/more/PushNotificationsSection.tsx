@@ -85,7 +85,8 @@ export function PushNotificationsSection() {
       <CardContent className="flex flex-col gap-3.5 pt-0">
         <p className="text-[12.5px] leading-snug text-muted-foreground">
           Get notified on this device when something looks probably due (only while you&apos;re on
-          duty), or 2 hours before a scheduled event starts (both caregivers, regardless of duty).
+          duty), 2 hours before a scheduled event starts (both caregivers, regardless of duty), or
+          10 minutes before a Training &gt; Scheduled meals time (only while you&apos;re on duty).
           Per-device — enable it separately on each phone or laptop you want to hear from.
         </p>
 

@@ -207,6 +207,7 @@ export function buildStarterData(): AppData {
       { id: makeId(), cue: "Leave it", meaning: "Disengage from an item", usedBy: ["me", "ribo"] },
     ],
     treatPreferences: { chews: "", treats: "" },
+    scheduledMeals: {},
     friends: [],
     vaccines: [],
     insurance: {

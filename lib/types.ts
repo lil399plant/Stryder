@@ -266,6 +266,16 @@ export interface TreatPreferences {
   treats: string;
 }
 
+/** Daily meal times (Training > Scheduled Meals) — a wall-clock "HH:MM",
+ * 24-hour, no date/timezone, since a slot repeats every day. Undefined
+ * means that slot has no reminder set. Distinct from MealEvent (the actual
+ * logged meal in Log) — this is only ever a recurring reminder time. */
+export interface ScheduledMealTimes {
+  breakfast?: string;
+  lunch?: string;
+  dinner?: string;
+}
+
 /** A dog Stryder has met — a running index caregivers can jot notes on and
  * check owner contact info from later (Training > Friends). */
 export interface DogFriend {
@@ -407,6 +417,7 @@ export interface AppData {
   trainingSessions: TrainingSession[];
   cues: CueEntry[];
   treatPreferences: TreatPreferences;
+  scheduledMeals: ScheduledMealTimes;
   friends: DogFriend[];
   vaccines: VaccineRecord[];
   insurance: InsuranceInfo;
