@@ -160,7 +160,8 @@ export default function TriagePage() {
         <div>
           <h1 className="text-[22px] font-semibold leading-tight">AI Triage</h1>
           <p className="text-[13px] text-muted-foreground">
-            Can see Stryder&apos;s profile and Log — not Training or Health. Not a vet; when in doubt, call one.
+            Can see Stryder&apos;s profile and Log — not Training or Health — plus general training
+            know-how from a few training books. Not a vet; when in doubt, call one.
           </p>
         </div>
         {messages.length > 0 && (
@@ -177,7 +178,8 @@ export default function TriagePage() {
             <p className="text-[14px] font-medium text-muted-foreground">Ask me anything</p>
             <p className="text-[12px] text-muted-foreground/80">
               I can see Stryder&apos;s profile and everything logged under Log — not Training or
-              Health. Nothing here is saved to your shared log unless you say so.
+              Health — and I can draw on general puppy-training guidance too. Nothing here is
+              saved to your shared log unless you say so.
             </p>
           </div>
         ) : (

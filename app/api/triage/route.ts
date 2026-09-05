@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { PUPPY_TRAINING_FRAMEWORK } from "@/lib/knowledge/puppy-training-framework";
 
 // "Ask AI" module. This route never touches lib/store or lib/supabase
 // itself — it only relays a chat history (plus, optionally, a read-only
@@ -12,6 +13,12 @@ import { NextResponse } from "next/server";
 // Training and Health data are never included; this route has no way to
 // tell the difference, it just relays whatever text the client sends, so
 // that boundary lives entirely in lib/triage-context.ts.
+//
+// PUPPY_TRAINING_FRAMEWORK (lib/knowledge/) is a separate, static
+// knowledge source — general training/behavior guidance synthesized from
+// books the user owns, not tied to Stryder's own data. It's always
+// included regardless of whether a per-dog `context` snapshot is present,
+// since general training questions are useful with or without logged data.
 
 const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
 const DEFAULT_MODEL = "deepseek-chat";
@@ -24,6 +31,16 @@ const BASE_SYSTEM_PROMPT =
   "solely on your answer. Reply in plain prose only — no markdown syntax " +
   "(no **bold**, #headers, or | tables). Use line breaks and a leading \"- \" for " +
   "lists if structure helps; the chat UI renders plain text, not markdown.";
+
+const TRAINING_KNOWLEDGE_PREFIX =
+  " You also have the following general puppy-training and dog-behavior reference " +
+  "to draw on for training/behavior questions — it's independent of Stryder's own " +
+  "logged data (if given below) and applies to puppies generally, not just Stryder. " +
+  "Use it to give grounded, specific advice rather than generic platitudes, and " +
+  "feel free to mention which source informs a piece of advice when it's useful " +
+  "context, but don't force a citation into every sentence.\n\n" +
+  PUPPY_TRAINING_FRAMEWORK +
+  "\n\n";
 
 const NO_CONTEXT_SUFFIX =
   " You have no access to the user's logged data and no memory beyond this conversation.";
@@ -68,9 +85,10 @@ export async function POST(request: Request) {
   }
 
   const context = typeof body.context === "string" ? body.context.slice(0, 20_000) : null;
-  const systemPrompt = context
-    ? BASE_SYSTEM_PROMPT + WITH_CONTEXT_SUFFIX + context
-    : BASE_SYSTEM_PROMPT + NO_CONTEXT_SUFFIX;
+  const systemPrompt =
+    BASE_SYSTEM_PROMPT +
+    TRAINING_KNOWLEDGE_PREFIX +
+    (context ? WITH_CONTEXT_SUFFIX + context : NO_CONTEXT_SUFFIX);
 
   try {
     const res = await fetch(DEEPSEEK_ENDPOINT, {
