@@ -13,23 +13,46 @@ import type { AppData } from "./types";
 
 type Identified = { id: string };
 
-/** Merges one id-keyed array. An id present in `local` wins with local's
- * version of that item (covers both "we added it" and "we edited it" —
- * simplest available rule for a genuine same-item double-edit, and rare in
- * practice). An id that's on the server but not in `local`: kept if it's
- * new since `base` (a peer added it and we don't know about it yet);
- * dropped if `base` already had it (we deleted it locally — the deletion
- * is respected rather than resurrected by the merge). */
-function mergeArrayById<T extends Identified>(base: T[], local: T[], server: T[]): T[] {
-  const baseIds = new Set(base.map((x) => x.id));
-  const localIds = new Set(local.map((x) => x.id));
+/** Structural equality for a merged item — used below to tell "this device
+ * hasn't touched this item since `base`" apart from "this device edited it,"
+ * the same distinction `mergeSingleton` draws per-field via `Object.is`. A
+ * whole record can't use `Object.is` (every `{...x}` spread makes a new
+ * object), so this compares by value instead. */
+function itemsEqual<T>(a: T, b: T): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
-  const result: T[] = [...local];
+/** Merges one id-keyed array. For an id present in both `base` and `local`,
+ * this device's copy only wins if it actually differs from `base` — i.e. we
+ * edited it since the last sync. If our copy still matches `base`, the
+ * server's version wins instead, so a peer's edit to an item we already
+ * have (e.g. ending a nap they started) isn't reverted back to our stale
+ * copy — that was the bug: the old rule let a same-id item win locally
+ * unconditionally, so any peer update to an already-synced item was
+ * silently discarded on every merge. A genuine same-item double-edit (both
+ * devices changed it since `base`) still resolves to local, same as before
+ * — rare in practice, and there's no better tiebreak available here.
+ * An id that's on the server but not in `local`: kept if it's new since
+ * `base` (a peer added it and we don't know about it yet); dropped if
+ * `base` already had it (we deleted it locally — the deletion is respected
+ * rather than resurrected by the merge). */
+function mergeArrayById<T extends Identified>(base: T[], local: T[], server: T[]): T[] {
+  const baseById = new Map(base.map((x) => [x.id, x]));
+  const localIds = new Set(local.map((x) => x.id));
+  const serverById = new Map(server.map((x) => [x.id, x]));
+
+  const result: T[] = local.map((item) => {
+    const baseItem = baseById.get(item.id);
+    const serverItem = serverById.get(item.id);
+    if (!serverItem) return item; // no peer copy to defer to — keep local
+    if (baseItem && itemsEqual(item, baseItem)) return serverItem; // we didn't touch it — take theirs
+    return item; // we changed it (or it's brand new) — ours wins
+  });
   const seen = new Set(localIds);
 
   for (const item of server) {
     if (seen.has(item.id)) continue;
-    if (baseIds.has(item.id) && !localIds.has(item.id)) continue; // deleted locally
+    if (baseById.has(item.id) && !localIds.has(item.id)) continue; // deleted locally
     result.push(item);
     seen.add(item.id);
   }
