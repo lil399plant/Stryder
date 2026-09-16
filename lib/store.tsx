@@ -159,6 +159,24 @@ function ensureInitialized() {
     saveToStorage(currentData);
   }
   pullFromServer();
+  startBackgroundSync();
+}
+
+// Without this, a tab that's just been sitting open never learns about a
+// peer's changes: pullFromServer above only ever runs once, at load, and
+// otherwise the only thing that talks to the server again is this device's
+// own pushOnce (a GET+merge+PUT triggered by a local edit). A caregiver who
+// opens the dashboard and leaves it up would see a nap/potty/etc as
+// "in progress" forever even after the other device ended it. Re-pull when
+// the tab regains focus/visibility, and periodically while it's visible, so
+// an idle tab still catches up.
+function startBackgroundSync() {
+  const maybePull = () => {
+    if (!document.hidden) pullFromServer();
+  };
+  window.addEventListener("visibilitychange", maybePull);
+  window.addEventListener("focus", maybePull);
+  setInterval(maybePull, 30_000);
 }
 
 /**
