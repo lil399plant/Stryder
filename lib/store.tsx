@@ -174,7 +174,9 @@ function startBackgroundSync() {
   const maybePull = () => {
     if (!document.hidden) pullFromServer();
   };
-  window.addEventListener("visibilitychange", maybePull);
+  // visibilitychange only ever fires on `document`, not `window` — it
+  // doesn't bubble, so a window listener silently never runs.
+  document.addEventListener("visibilitychange", maybePull);
   window.addEventListener("focus", maybePull);
   setInterval(maybePull, 30_000);
 }
