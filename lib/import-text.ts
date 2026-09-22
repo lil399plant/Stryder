@@ -21,6 +21,7 @@ import {
   MEAL_TYPE_OPTIONS,
   APPETITE_OPTIONS,
   ADD_ON_OPTIONS,
+  FOOD_TYPE_OPTIONS,
   NAP_LOCATION_OPTIONS,
   SETTLING_OPTIONS,
   NAP_QUALITY_OPTIONS,
@@ -54,6 +55,7 @@ const POTTY_MOMENT_SUCCESSES = setOf(POTTY_MOMENT_SUCCESS_OPTIONS);
 const MEAL_TYPES = setOf(MEAL_TYPE_OPTIONS);
 const APPETITES = setOf(APPETITE_OPTIONS);
 const ADD_ONS = setOf(ADD_ON_OPTIONS);
+const FOOD_TYPES = setOf(FOOD_TYPE_OPTIONS);
 const NAP_LOCATIONS = setOf(NAP_LOCATION_OPTIONS);
 const SETTLINGS = setOf(SETTLING_OPTIONS);
 const NAP_QUALITIES = setOf(NAP_QUALITY_OPTIONS);
@@ -110,7 +112,9 @@ function sanitizeMeal(raw: any): NewEntry<MealEvent> | null {
   const entry: NewEntry<MealEvent> = {
     timestamp: raw.timestamp,
     mealType: raw.mealType,
-    foodName: str(raw.foodName) ?? "",
+    foodTypes: Array.isArray(raw.foodTypes)
+      ? raw.foodTypes.filter((f: unknown): f is string => typeof f === "string" && FOOD_TYPES.has(f))
+      : [],
     amount: str(raw.amount) ?? "",
     appetite: APPETITES.has(raw.appetite) ? raw.appetite : "most",
     addOns: Array.isArray(raw.addOns)

@@ -101,19 +101,14 @@ export const POTTY_TYPE_LABEL: Record<PottyEvent["type"], string> = {
 
 export const POTTY_LOCATION_LABEL: Record<PottyEvent["location"], string> = {
   "usual-spot": "Usual potty spot",
-  "alternate-outdoor": "Alternate outdoor spot",
-  "building-lobby-elevator": "Building / lobby / elevator",
-  "inside-pad": "Inside, near pad",
-  other: "Other",
+  elsewhere: "Elsewhere",
 };
 
 export const OUTDOOR_TRIP_LABEL: Record<string, string> = {
   "direct-potty-trip": "Direct potty trip",
-  "potty-circuit": "Potty circuit",
-  "walk-first": "Walk first",
-  "after-nap": "After nap",
-  "after-meal": "After meal",
-  "before-bed": "Before bed",
+  "around-the-block": "Around the block",
+  "dog-park": "Dog park",
+  "dog-park-sprint": "Dog park - sprint",
 };
 
 export const SUCCESS_LABEL: Record<PottyEvent["success"], string> = {
@@ -158,6 +153,18 @@ export const APPETITE_LABEL: Record<MealEvent["appetite"], string> = {
   refused: "Refused",
 };
 
+export const FOOD_TYPE_LABEL: Record<string, string> = {
+  kibble: "Kibble",
+  "canned-food-sausage": "Canned food/sausage",
+  homemade: "Homemade",
+  "restaurant-dish": "Restaurant dish",
+};
+
+/** Joined display string for a meal's food types — e.g. "Kibble, Homemade". */
+export function foodTypesLabel(types: MealEvent["foodTypes"]): string {
+  return types.map((t) => FOOD_TYPE_LABEL[t] ?? t).join(", ");
+}
+
 export const ADD_ON_LABEL: Record<string, string> = {
   "plain-greek-yogurt": "Plain Greek yogurt",
   chicken: "Chicken",
@@ -168,19 +175,17 @@ export const ADD_ON_LABEL: Record<string, string> = {
 };
 
 export const NAP_LOCATION_LABEL: Record<NonNullable<NapEvent["location"]>, string> = {
-  kitchen: "Kitchen",
-  "foot-of-bed": "Foot of bed",
   couch: "Couch",
+  bed: "Bed",
   crate: "Crate",
-  pen: "Pen",
-  other: "Other",
+  floor: "Floor",
 };
 
 export const SETTLING_LABEL: Record<NonNullable<NapEvent["settling"]>, string> = {
-  "fell-asleep-independently": "Fell asleep independently",
-  "needed-chew-lick-mat": "Needed chew / lick mat",
-  "needed-caregiver-nearby": "Needed caregiver nearby",
-  "overtired-struggled": "Overtired / struggled",
+  "fell-asleep-quickly": "Fell asleep quickly",
+  "whined-under-5-min": "Whined <5mins",
+  "whined-10-20-min": "Whined 10-20mins",
+  "prolonged-whining": "Prolonged whining",
 };
 
 export const NAP_QUALITY_LABEL: Record<string, string> = {

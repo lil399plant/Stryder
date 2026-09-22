@@ -85,7 +85,7 @@ export function AddEntrySheet({ kind, onClose, initialOverride, eventMode = "log
             initial={{
               timestamp: nowIso,
               mealType: "breakfast",
-              foodName: data.health.currentFood || "Puppy kibble",
+              foodTypes: ["kibble"],
               amount: "",
               appetite: "finished",
               addOns: [],
@@ -112,8 +112,8 @@ export function AddEntrySheet({ kind, onClose, initialOverride, eventMode = "log
             initial={{
               startTime: nowIso,
               endTime: undefined,
-              location: "kitchen",
-              settling: "fell-asleep-independently",
+              location: "couch",
+              settling: "fell-asleep-quickly",
               caregiver: onDuty,
               ...(initialOverride as Partial<NapFormValues>),
             }}
@@ -134,7 +134,7 @@ export function AddEntrySheet({ kind, onClose, initialOverride, eventMode = "log
             initial={{
               startTime: nowIso,
               endTime: undefined,
-              outdoorTripType: "walk-first",
+              outdoorTripType: "direct-potty-trip",
               pottyMoments: [makeDefaultPottyMoment(nowIso)],
               notes: "",
               caregiver: onDuty,

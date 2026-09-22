@@ -25,6 +25,7 @@ import {
   SEVERITY_LABEL,
   TRAINING_OUTCOME_LABEL,
   pottyMomentsSummaryLabel,
+  foodTypesLabel,
 } from "@/lib/timeline";
 
 /** Shared rendering rules for a logged entry — used by both the vertical
@@ -97,7 +98,7 @@ export function isDayNoteItem(item: TimelineItem): boolean {
  * (falling back to "Treat"). */
 export function dayNoteTextFor(item: TimelineItem): string {
   if (item.kind === "incident") return item.data.note.trim() || INCIDENT_CATEGORY_LABEL[item.data.category];
-  if (item.kind === "meal") return item.data.notes?.trim() || item.data.foodName?.trim() || "Treat";
+  if (item.kind === "meal") return item.data.notes?.trim() || foodTypesLabel(item.data.foodTypes) || "Treat";
   return "";
 }
 
@@ -202,7 +203,7 @@ export function subtitleFor(item: TimelineItem): string {
       return parts.join(" · ");
     }
     case "meal":
-      return `${item.data.foodName || "—"} · ${APPETITE_LABEL[item.data.appetite]}`;
+      return `${foodTypesLabel(item.data.foodTypes) || "—"} · ${APPETITE_LABEL[item.data.appetite]}`;
     case "nap": {
       const loc = item.data.location ? NAP_LOCATION_LABEL[item.data.location] : null;
       const range = !item.data.endTime

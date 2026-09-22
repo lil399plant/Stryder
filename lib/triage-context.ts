@@ -16,6 +16,7 @@ import {
   SEVERITY_LABEL,
   SPECIAL_EVENT_CATEGORY_LABEL,
   pottyMomentsSummaryLabel,
+  foodTypesLabel,
 } from "./timeline";
 import { caregiverName as caregiverNameFor } from "./rules";
 
@@ -54,7 +55,9 @@ function pottyLine(p: PottyEvent, who: string): string {
 }
 
 function mealLine(m: MealEvent, who: string): string {
-  const parts = [MEAL_TYPE_LABEL[m.mealType], m.foodName, m.amount, APPETITE_LABEL[m.appetite]].filter(Boolean);
+  const parts = [MEAL_TYPE_LABEL[m.mealType], foodTypesLabel(m.foodTypes), m.amount, APPETITE_LABEL[m.appetite]].filter(
+    Boolean
+  );
   if (m.addOns.length) parts.push(`add-ons: ${m.addOns.map((a) => ADD_ON_LABEL[a] ?? a).join(", ")}`);
   if (m.newFood) parts.push("new food");
   if (m.notes) parts.push(`note: ${m.notes}`);

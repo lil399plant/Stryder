@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ChoiceChips, MultiChoiceChips } from "@/components/ui/choice-chips";
-import { MEAL_TYPE_OPTIONS, APPETITE_OPTIONS, ADD_ON_OPTIONS } from "@/lib/options";
+import { MEAL_TYPE_OPTIONS, APPETITE_OPTIONS, ADD_ON_OPTIONS, FOOD_TYPE_OPTIONS } from "@/lib/options";
 import { formatDateTimeLocal, fromDateTimeLocal } from "@/lib/time";
 
 export type MealFormValues = Omit<MealEvent, "id" | "kind">;
@@ -65,15 +65,18 @@ export function MealForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label>Food</Label>
-          <Input value={values.foodName} onChange={(e) => set("foodName", e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Amount</Label>
-          <Input value={values.amount} onChange={(e) => set("amount", e.target.value)} />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Label>Food</Label>
+        <MultiChoiceChips
+          options={FOOD_TYPE_OPTIONS}
+          values={values.foodTypes}
+          onChange={(v) => set("foodTypes", v as MealFormValues["foodTypes"])}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Amount</Label>
+        <Input value={values.amount} onChange={(e) => set("amount", e.target.value)} />
       </div>
 
       <div className="flex flex-col gap-1.5">

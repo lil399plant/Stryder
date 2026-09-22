@@ -62,7 +62,7 @@ export default function TodayPage() {
     setAddingKind("potty");
     setAddingOverride(
       type === "accident"
-        ? { type, location: "inside-pad", success: "accident" }
+        ? { type, location: "elsewhere", success: "accident" }
         : { type, poopQuality: type === "poop" ? "normal" : undefined }
     );
   };

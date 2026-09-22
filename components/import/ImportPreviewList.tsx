@@ -14,6 +14,7 @@ import {
   INCIDENT_CATEGORY_LABEL,
   SEVERITY_LABEL,
   pottyMomentsSummaryLabel,
+  foodTypesLabel,
 } from "@/lib/timeline";
 
 // Shared review-before-import list — one-line-per-entry preview grouped by
@@ -46,7 +47,7 @@ export function ImportPreviewList({
             key={`m${i}`}
             time={formatClock(e.timestamp)}
             caregiver={caregiverName(e.caregiver)}
-            summary={`${MEAL_TYPE_LABEL[e.mealType]}${e.foodName ? " · " + e.foodName : ""} · ${APPETITE_LABEL[e.appetite]}`}
+            summary={`${MEAL_TYPE_LABEL[e.mealType]}${e.foodTypes.length ? " · " + foodTypesLabel(e.foodTypes) : ""} · ${APPETITE_LABEL[e.appetite]}`}
           />
         ))}
       </EntryGroup>

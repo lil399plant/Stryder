@@ -12,6 +12,7 @@ import {
   MEAL_TYPE_OPTIONS,
   APPETITE_OPTIONS,
   ADD_ON_OPTIONS,
+  FOOD_TYPE_OPTIONS,
   NAP_LOCATION_OPTIONS,
   SETTLING_OPTIONS,
   NAP_QUALITY_OPTIONS,
@@ -57,7 +58,7 @@ Respond with ONLY a JSON object (no prose, no markdown fences) with these option
 
 pottyEvents: { timestamp, type: ${valuesList(POTTY_TYPE_OPTIONS)}, location: ${valuesList(POTTY_LOCATION_OPTIONS)}, outdoorTripType?: ${valuesList(OUTDOOR_TRIP_OPTIONS)}, success: ${valuesList(SUCCESS_OPTIONS)}, poopQuality?: ${valuesList(POOP_QUALITY_OPTIONS)}, tags?: array from [${valuesList(POTTY_TAG_OPTIONS)}], notes?: string, caregiver, accidentWhere?: string, accidentReason?: string }
 
-mealEvents: { timestamp, mealType: ${valuesList(MEAL_TYPE_OPTIONS)}, foodName: string, amount: string, appetite: ${valuesList(APPETITE_OPTIONS)}, addOns?: array from [${valuesList(ADD_ON_OPTIONS)}], newFood: boolean, usedForCrateTraining: boolean, usedAsPottyReward: boolean, notes?: string, caregiver }
+mealEvents: { timestamp, mealType: ${valuesList(MEAL_TYPE_OPTIONS)}, foodTypes?: array from [${valuesList(FOOD_TYPE_OPTIONS)}], amount: string, appetite: ${valuesList(APPETITE_OPTIONS)}, addOns?: array from [${valuesList(ADD_ON_OPTIONS)}], newFood: boolean, usedForCrateTraining: boolean, usedAsPottyReward: boolean, notes?: string, caregiver }
 
 napEvents: { startTime, endTime?, location?: ${valuesList(NAP_LOCATION_OPTIONS)} (omit if not stated — don't guess), settling?: ${valuesList(SETTLING_OPTIONS)}, quality?: ${valuesList(NAP_QUALITY_OPTIONS)}, notes?: string, caregiver }
 

@@ -9,19 +9,14 @@ export const POTTY_TYPE_OPTIONS: ChipOption[] = [
 
 export const POTTY_LOCATION_OPTIONS: ChipOption[] = [
   { value: "usual-spot", label: "Usual potty spot" },
-  { value: "alternate-outdoor", label: "Alternate outdoor spot" },
-  { value: "building-lobby-elevator", label: "Building / lobby / elevator" },
-  { value: "inside-pad", label: "Inside, near pad" },
-  { value: "other", label: "Other" },
+  { value: "elsewhere", label: "Elsewhere" },
 ];
 
 export const OUTDOOR_TRIP_OPTIONS: ChipOption[] = [
   { value: "direct-potty-trip", label: "Direct potty trip" },
-  { value: "potty-circuit", label: "Potty circuit" },
-  { value: "walk-first", label: "Walk first" },
-  { value: "after-nap", label: "After nap" },
-  { value: "after-meal", label: "After meal" },
-  { value: "before-bed", label: "Before bed" },
+  { value: "around-the-block", label: "Around the block" },
+  { value: "dog-park", label: "Dog park" },
+  { value: "dog-park-sprint", label: "Dog park - sprint" },
 ];
 
 export const SUCCESS_OPTIONS: ChipOption[] = [
@@ -60,6 +55,13 @@ export const POTTY_TAG_OPTIONS: ChipOption[] = [
   { value: "unknown", label: "Unknown" },
 ];
 
+export const FOOD_TYPE_OPTIONS: ChipOption[] = [
+  { value: "kibble", label: "Kibble" },
+  { value: "canned-food-sausage", label: "Canned food/sausage" },
+  { value: "homemade", label: "Homemade" },
+  { value: "restaurant-dish", label: "Restaurant dish" },
+];
+
 export const MEAL_TYPE_OPTIONS: ChipOption[] = [
   { value: "breakfast", label: "Breakfast" },
   { value: "lunch", label: "Lunch" },
@@ -85,19 +87,17 @@ export const ADD_ON_OPTIONS: ChipOption[] = [
 ];
 
 export const NAP_LOCATION_OPTIONS: ChipOption[] = [
-  { value: "kitchen", label: "Kitchen" },
-  { value: "foot-of-bed", label: "Foot of bed" },
   { value: "couch", label: "Couch" },
+  { value: "bed", label: "Bed" },
   { value: "crate", label: "Crate" },
-  { value: "pen", label: "Pen" },
-  { value: "other", label: "Other" },
+  { value: "floor", label: "Floor" },
 ];
 
 export const SETTLING_OPTIONS: ChipOption[] = [
-  { value: "fell-asleep-independently", label: "Fell asleep independently" },
-  { value: "needed-chew-lick-mat", label: "Needed chew / lick mat" },
-  { value: "needed-caregiver-nearby", label: "Needed caregiver nearby" },
-  { value: "overtired-struggled", label: "Overtired / struggled" },
+  { value: "fell-asleep-quickly", label: "Fell asleep quickly" },
+  { value: "whined-under-5-min", label: "Whined <5mins" },
+  { value: "whined-10-20-min", label: "Whined 10-20mins" },
+  { value: "prolonged-whining", label: "Prolonged whining" },
 ];
 
 export const NAP_QUALITY_OPTIONS: ChipOption[] = [

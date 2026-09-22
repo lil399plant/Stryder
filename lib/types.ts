@@ -12,20 +12,13 @@ export type ISODateTime = string; // new Date().toISOString()
 
 export type PottyType = "pee" | "poop" | "both" | "accident";
 
-export type PottyLocation =
-  | "usual-spot"
-  | "alternate-outdoor"
-  | "building-lobby-elevator"
-  | "inside-pad"
-  | "other";
+export type PottyLocation = "usual-spot" | "elsewhere";
 
 export type OutdoorTripType =
   | "direct-potty-trip"
-  | "potty-circuit"
-  | "walk-first"
-  | "after-nap"
-  | "after-meal"
-  | "before-bed";
+  | "around-the-block"
+  | "dog-park"
+  | "dog-park-sprint";
 
 export type PottySuccess =
   | "went-promptly"
@@ -78,12 +71,14 @@ export type MealAddOn =
   | "pumpkin"
   | "other";
 
+export type FoodType = "kibble" | "canned-food-sausage" | "homemade" | "restaurant-dish";
+
 export interface MealEvent {
   id: string;
   kind: "meal";
   timestamp: ISODateTime;
   mealType: MealType;
-  foodName: string;
+  foodTypes: FoodType[];
   amount: string;
   appetite: Appetite;
   addOns: MealAddOn[];
@@ -96,13 +91,13 @@ export interface MealEvent {
 
 // ---------- Naps ----------
 
-export type NapLocation = "kitchen" | "foot-of-bed" | "couch" | "crate" | "pen" | "other";
+export type NapLocation = "couch" | "bed" | "crate" | "floor";
 
 export type Settling =
-  | "fell-asleep-independently"
-  | "needed-chew-lick-mat"
-  | "needed-caregiver-nearby"
-  | "overtired-struggled";
+  | "fell-asleep-quickly"
+  | "whined-under-5-min"
+  | "whined-10-20-min"
+  | "prolonged-whining";
 
 export type NapQuality = "normal" | "short" | "long" | "interrupted";
 
