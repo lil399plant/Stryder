@@ -55,9 +55,10 @@ function pottyLine(p: PottyEvent, who: string): string {
 }
 
 function mealLine(m: MealEvent, who: string): string {
-  const parts = [MEAL_TYPE_LABEL[m.mealType], foodTypesLabel(m.foodTypes), m.amount, APPETITE_LABEL[m.appetite]].filter(
-    Boolean
-  );
+  // Older meals predate foodTypes and carry a free-text foodName instead.
+  const legacyFoodName = (m as MealEvent & { foodName?: string }).foodName;
+  const food = foodTypesLabel(m.foodTypes) || legacyFoodName;
+  const parts = [MEAL_TYPE_LABEL[m.mealType], food, m.amount, APPETITE_LABEL[m.appetite]].filter(Boolean);
   if (m.addOns.length) parts.push(`add-ons: ${m.addOns.map((a) => ADD_ON_LABEL[a] ?? a).join(", ")}`);
   if (m.newFood) parts.push("new food");
   if (m.notes) parts.push(`note: ${m.notes}`);

@@ -160,9 +160,11 @@ export const FOOD_TYPE_LABEL: Record<string, string> = {
   "restaurant-dish": "Restaurant dish",
 };
 
-/** Joined display string for a meal's food types — e.g. "Kibble, Homemade". */
-export function foodTypesLabel(types: MealEvent["foodTypes"]): string {
-  return types.map((t) => FOOD_TYPE_LABEL[t] ?? t).join(", ");
+/** Joined display string for a meal's food types — e.g. "Kibble, Homemade".
+ *  Meals logged before foodTypes existed have no array (only a legacy
+ *  free-text `foodName`), so tolerate undefined rather than throwing. */
+export function foodTypesLabel(types: MealEvent["foodTypes"] | undefined): string {
+  return (types ?? []).map((t) => FOOD_TYPE_LABEL[t] ?? t).join(", ");
 }
 
 export const ADD_ON_LABEL: Record<string, string> = {
