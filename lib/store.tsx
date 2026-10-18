@@ -126,6 +126,7 @@ function normalize(data: AppData): AppData {
     settings: {
       ...data.settings,
       nudgeThresholds: data.settings?.nudgeThresholds ?? { ...DEFAULT_NUDGE_THRESHOLDS },
+      pausedTracking: data.settings?.pausedTracking ?? { potty: false, naps: false },
     },
   };
 }

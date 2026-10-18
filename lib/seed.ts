@@ -242,6 +242,7 @@ export function buildStarterData(): AppData {
       hideAnalytics: false,
       remindersEnabled: false,
       nudgeThresholds: { ...DEFAULT_NUDGE_THRESHOLDS },
+      pausedTracking: { potty: false, naps: false },
     },
     dismissedNudges: [],
   };

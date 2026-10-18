@@ -3,7 +3,7 @@
 import { Droplets, UtensilsCrossed, Moon, Sun, Sunset, User } from "lucide-react";
 import type { AppData } from "@/lib/types";
 import { formatDurationSince } from "@/lib/time";
-import { lastPottyOfType, lastMeal, computeCurrentState, onDutyCaregiverName } from "@/lib/rules";
+import { lastPottyOfType, lastMeal, computeCurrentState, onDutyCaregiverName, isTrackingPaused } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 const STATE_META: Record<string, { label: string; icon: typeof Sun }> = {
@@ -39,19 +39,24 @@ export function StatusStrip({ data, now }: { data: AppData; now: Date }) {
   const stateMeta = STATE_META[state];
   const StateIcon = stateMeta.icon;
   const onDuty = onDutyCaregiverName(data);
+  const pottyPaused = isTrackingPaused(data, "potty");
 
   return (
-    <div className="mb-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-      <StatCard
-        icon={<Droplets className="h-3.5 w-3.5" />}
-        label="Last pee"
-        value={lastPee ? formatDurationSince(lastPee.timestamp, now) : "No data yet"}
-      />
-      <StatCard
-        icon={<Droplets className="h-3.5 w-3.5" />}
-        label="Last poop"
-        value={lastPoop ? formatDurationSince(lastPoop.timestamp, now) : "No data yet"}
-      />
+    <div className={cn("mb-4 grid grid-cols-2 gap-2.5", !pottyPaused && "sm:grid-cols-4")}>
+      {!pottyPaused && (
+        <>
+          <StatCard
+            icon={<Droplets className="h-3.5 w-3.5" />}
+            label="Last pee"
+            value={lastPee ? formatDurationSince(lastPee.timestamp, now) : "No data yet"}
+          />
+          <StatCard
+            icon={<Droplets className="h-3.5 w-3.5" />}
+            label="Last poop"
+            value={lastPoop ? formatDurationSince(lastPoop.timestamp, now) : "No data yet"}
+          />
+        </>
+      )}
       <StatCard
         icon={<UtensilsCrossed className="h-3.5 w-3.5" />}
         label="Last meal"

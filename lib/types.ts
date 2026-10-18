@@ -386,11 +386,20 @@ export interface NudgeThresholds {
   mealGapHours: number;
 }
 
+/** Categories that can be paused once they stop being worth tracking (e.g.
+ * as he grows out of needing a potty/nap schedule). Pausing only hides the
+ * category's logging buttons, nudges, and analytics — past entries stay. */
+export interface PausedTracking {
+  potty: boolean;
+  naps: boolean;
+}
+
 export interface AppSettings {
   theme: "light" | "dark" | "system";
   hideAnalytics: boolean;
   remindersEnabled: boolean;
   nudgeThresholds: NudgeThresholds;
+  pausedTracking: PausedTracking;
 }
 
 // ---------- Root ----------

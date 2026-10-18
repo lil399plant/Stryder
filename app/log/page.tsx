@@ -16,7 +16,7 @@ import { useStore } from "@/lib/store";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import type { TimelineItem } from "@/lib/timeline";
-import { caregiverName as caregiverNameFor } from "@/lib/rules";
+import { caregiverName as caregiverNameFor, isTrackingPaused } from "@/lib/rules";
 import type { Caregiver } from "@/lib/types";
 import { addDays, isToday } from "@/lib/time";
 import { getWeekStart, weekRangeLabel, monthLabel, dayLabel } from "@/lib/calendar-grid";
@@ -121,7 +121,10 @@ export default function LogPage() {
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {ADD_BUTTONS.map(({ kind, label, icon: Icon }) => (
+        {ADD_BUTTONS.filter(
+          ({ kind }) =>
+            !(kind === "potty" && isTrackingPaused(data, "potty")) && !(kind === "nap" && isTrackingPaused(data, "naps"))
+        ).map(({ kind, label, icon: Icon }) => (
           <button
             key={kind}
             onClick={() => {

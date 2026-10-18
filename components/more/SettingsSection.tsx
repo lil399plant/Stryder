@@ -5,12 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChoiceChips } from "@/components/ui/choice-chips";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/lib/store";
-import type { AppSettings } from "@/lib/types";
+import type { AppSettings, PausedTracking } from "@/lib/types";
 
 const THEME_OPTIONS = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
   { value: "system", label: "System" },
+];
+
+const PAUSE_TOGGLES: { key: keyof PausedTracking; label: string; hint: string }[] = [
+  {
+    key: "potty",
+    label: "Pause potty tracking",
+    hint: "Hides pee/poop/accident logging, potty nudges, and potty analytics. Past entries stay.",
+  },
+  {
+    key: "naps",
+    label: "Pause nap tracking",
+    hint: "Hides nap logging, the long-awake nudge, and nap analytics. Past entries stay.",
+  },
 ];
 
 export function SettingsSection() {
@@ -45,6 +58,22 @@ export function SettingsSection() {
             onCheckedChange={(v) => updateSettings({ hideAnalytics: v })}
           />
         </div>
+
+        {PAUSE_TOGGLES.map(({ key, label, hint }) => (
+          <div
+            key={key}
+            className="flex items-center justify-between rounded-xl border border-border bg-surface-raised px-3.5 py-3"
+          >
+            <div className="pr-3">
+              <p className="text-[14px] font-medium">{label}</p>
+              <p className="text-[11.5px] text-muted-foreground">{hint}</p>
+            </div>
+            <Switch
+              checked={data.settings.pausedTracking[key]}
+              onCheckedChange={(v) => updateSettings({ pausedTracking: { ...data.settings.pausedTracking, [key]: v } })}
+            />
+          </div>
+        ))}
 
         <div className="flex items-center justify-between rounded-xl border border-border bg-surface-raised px-3.5 py-3">
           <div className="pr-3">

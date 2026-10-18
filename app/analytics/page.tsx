@@ -3,6 +3,7 @@
 import { EyeOff } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
+import { isTrackingPaused } from "@/lib/rules";
 import {
   bathroomTimingPoints,
   averageGapBetweenPee,
@@ -41,6 +42,8 @@ export default function AnalyticsPage() {
   }
 
   const now = new Date();
+  const pottyPaused = isTrackingPaused(data, "potty");
+  const napsPaused = isTrackingPaused(data, "naps");
 
   return (
     <div className="flex flex-col gap-3">
@@ -51,10 +54,14 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      <BathroomTimingCard points={bathroomTimingPoints(data)} />
-      <PottyGapCard pee={averageGapBetweenPee(data)} poop={averageGapBetweenPoop(data)} />
-      <NapCard stats={napDurationHistogram(data)} />
-      <DaysWithoutAccidentCard days={daysSinceLastAccident(data, now)} />
+      {!pottyPaused && (
+        <>
+          <BathroomTimingCard points={bathroomTimingPoints(data)} />
+          <PottyGapCard pee={averageGapBetweenPee(data)} poop={averageGapBetweenPoop(data)} />
+        </>
+      )}
+      {!napsPaused && <NapCard stats={napDurationHistogram(data)} />}
+      {!pottyPaused && <DaysWithoutAccidentCard days={daysSinceLastAccident(data, now)} />}
       <TrainingOverTimeCard data={trainingSessionsPerDay(data, 14, now)} />
       <CorrelationCards cards={correlationCards(data)} />
     </div>

@@ -3,7 +3,7 @@
 // states the plain-language rule that produced it so it's easy to trust
 // or ignore. See NextNeedsCard for how these render.
 
-import type { AppData, Caregiver, LogEvent, NudgeThresholds } from "./types";
+import type { AppData, Caregiver, LogEvent, NudgeThresholds, PausedTracking } from "./types";
 import { minutesBetween } from "./time";
 import { lastPottyOccurrence } from "./potty";
 
@@ -17,6 +17,13 @@ export const DEFAULT_NUDGE_THRESHOLDS: NudgeThresholds = {
   awakeStretchHours: 2.5,
   mealGapHours: 6,
 };
+
+/** Whether a category's tracking is paused in Settings. Optional-chained
+ * because the cron route reads raw stored data that hasn't been through the
+ * store's normalize(), so older payloads may lack the field. */
+export function isTrackingPaused(data: AppData, category: keyof PausedTracking): boolean {
+  return data.settings?.pausedTracking?.[category] ?? false;
+}
 
 export function getActiveNap(data: AppData) {
   return data.napEvents.find((n) => !n.endTime) ?? null;
@@ -142,9 +149,11 @@ export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
   const lastPottyAny = lastPottyOfType(data, ["pee", "poop"]);
   const lastMealEvent = lastMeal(data);
   const lastNap = lastCompletedNap(data);
+  const pottyPaused = isTrackingPaused(data, "potty");
+  const napsPaused = isTrackingPaused(data, "naps");
 
   // Rule: recently woke, no potty logged since waking yet
-  if (lastNap?.endTime) {
+  if (!pottyPaused && lastNap?.endTime) {
     const minsSinceWake = minutesBetween(new Date(lastNap.endTime), now);
     const pottySinceWake = lastPottyAny && new Date(lastPottyAny.timestamp).getTime() > new Date(lastNap.endTime).getTime();
     if (!activeNap && minsSinceWake >= 5 && minsSinceWake <= 40 && !pottySinceWake) {
@@ -158,7 +167,7 @@ export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
 
   // Rule: long stretch AWAKE since any potty — nap time doesn't count, and
   // while he's currently napping this is treated as 0 (no flag at all).
-  if (lastPottyAny && state !== "napping") {
+  if (!pottyPaused && lastPottyAny && state !== "napping") {
     const minsAwakeSincePotty = awakeMinutesSince(data, new Date(lastPottyAny.timestamp), now);
     if (minsAwakeSincePotty >= thresholds.pottyGapHours * 60) {
       nudges.push({
@@ -170,7 +179,7 @@ export function computeNudges(data: AppData, now: Date = new Date()): Nudge[] {
   }
 
   // Rule: long active stretch since last nap ended
-  if (lastNap?.endTime && !activeNap && state === "awake") {
+  if (!napsPaused && lastNap?.endTime && !activeNap && state === "awake") {
     const minsAwake = minutesBetween(new Date(lastNap.endTime), now);
     if (minsAwake >= thresholds.awakeStretchHours * 60) {
       nudges.push({

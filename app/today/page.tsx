@@ -10,6 +10,7 @@ import {
   getActiveNap,
   getActiveDownstairs,
   getActiveEvent,
+  isTrackingPaused,
   caregiverName as caregiverNameFor,
 } from "@/lib/rules";
 import { DateHeader } from "@/components/today/DateHeader";
@@ -131,6 +132,8 @@ export default function TodayPage() {
             activeNap={activeNap}
             activeDownstairs={activeDownstairs}
             activeEvent={activeEvent}
+            pottyPaused={isTrackingPaused(data, "potty")}
+            napsPaused={isTrackingPaused(data, "naps")}
             now={now}
           />
           <NextNeedsCard nudges={nudges} now={now} />
