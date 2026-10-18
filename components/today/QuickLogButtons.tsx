@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, Waves, UtensilsCrossed, Moon, Footprints, Sparkles, TriangleAlert, Square } from "lucide-react";
+import { Droplets, Waves, UtensilsCrossed, Moon, Footprints, Sparkles, TriangleAlert, Square, NotebookPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DownstairsEvent, NapEvent, SpecialEvent } from "@/lib/types";
 import { formatDurationSince } from "@/lib/time";
@@ -39,6 +39,7 @@ interface QuickLogButtonsProps {
   onEventStart: () => void;
   onEventEnd: () => void;
   onAccident: () => void;
+  onNote: () => void;
   activeNap: NapEvent | null;
   activeDownstairs: DownstairsEvent | null;
   activeEvent: SpecialEvent | null;
@@ -58,6 +59,7 @@ export function QuickLogButtons({
   onEventStart,
   onEventEnd,
   onAccident,
+  onNote,
   activeNap,
   activeDownstairs,
   activeEvent,
@@ -142,16 +144,26 @@ export function QuickLogButtons({
         </Button>
       </div>
 
-      {!pottyPaused && (
+      <div className="mt-2.5 flex gap-2.5">
         <button
           type="button"
-          onClick={onAccident}
-          className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border-strong bg-transparent py-2.5 text-[13px] font-medium text-muted-foreground hover:bg-surface-raised"
+          onClick={onNote}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border-strong bg-transparent py-2.5 text-[13px] font-medium text-muted-foreground hover:bg-surface-raised"
         >
-          <TriangleAlert className="h-3.5 w-3.5" />
-          Log an accident
+          <NotebookPen className="h-3.5 w-3.5" />
+          Add a note
         </button>
-      )}
+        {!pottyPaused && (
+          <button
+            type="button"
+            onClick={onAccident}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border-strong bg-transparent py-2.5 text-[13px] font-medium text-muted-foreground hover:bg-surface-raised"
+          >
+            <TriangleAlert className="h-3.5 w-3.5" />
+            Log an accident
+          </button>
+        )}
+      </div>
     </div>
   );
 }

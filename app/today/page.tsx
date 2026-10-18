@@ -95,6 +95,11 @@ export default function TodayPage() {
     showToast("Downstairs trip ended", () => store.updateDownstairsTrip(activeDownstairs.id, { endTime: undefined }));
   };
 
+  const openNote = () => {
+    setAddingKind("incident");
+    setAddingOverride(undefined);
+  };
+
   const openEventStart = () => {
     setAddingKind("event");
     setAddingOverride(undefined);
@@ -129,6 +134,7 @@ export default function TodayPage() {
             onEventStart={openEventStart}
             onEventEnd={handleEventEnd}
             onAccident={() => openPotty("accident")}
+            onNote={openNote}
             activeNap={activeNap}
             activeDownstairs={activeDownstairs}
             activeEvent={activeEvent}
